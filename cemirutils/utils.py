@@ -2,12 +2,193 @@ class CemirUtils:
     def __init__(self, data):
         """
         CemirUtils sınıfının yapıcı fonksiyonu.
-        Verilen veriyi sınıfın 'data' değişkenine atar ve sadece int ve float olanları filtreler.
+        Verilen veriyi sınıfın 'data' değişkenine atar.
 
         Parametre:
-        data (list): İşlenecek veri listesi.
+        data (list, dict): İşlenecek sayısal veri listesi veya sözlük.
         """
-        self.data = [x for x in data if isinstance(x, (int, float))]
+        self.data = data
+
+    def multiply_by_scalar(self, scalar):
+        """
+        Veri listesindeki her bir elemanı verilen skaler değer ile çarpar.
+
+        Parametre:
+        scalar (int, float): Çarpılacak skaler değer.
+
+        Dönüş:
+        list: Skaler değer ile çarpılmış veri listesi.
+
+        Örnek:
+        >>> ceml = CemirUtils([1, 2, 3])
+        >>> ceml.multiply_by_scalar(2)
+        [2, 4, 6]
+        """
+        if isinstance(self.data, list):
+            return [x * scalar for x in self.data]
+        else:
+            raise TypeError("Veri tipi liste olmalıdır.")
+
+    def get_frequency(self, value):
+        """
+        Verilen değerin veri listesinde kaç kez geçtiğini sayar.
+
+        Parametre:
+        value: Sayılacak değer.
+
+        Dönüş:
+        int: Değerin listede kaç kez geçtiği.
+
+        Örnek:
+        >>> ceml = CemirUtils([1, 2, 2, 3])
+        >>> ceml.get_frequency(2)
+        2
+        """
+        if isinstance(self.data, list):
+            return self.data.count(value)
+        else:
+            raise TypeError("Veri tipi liste olmalıdır.")
+
+    def reverse_list(self):
+        """
+        Veri listesini tersine çevirir.
+
+        Dönüş:
+        list: Tersine çevrilmiş veri listesi.
+
+        Örnek:
+        >>> ceml = CemirUtils([1, 2, 3])
+        >>> ceml.reverse_list()
+        [3, 2, 1]
+        """
+        if isinstance(self.data, list):
+            return self.data[::-1]
+        else:
+            raise TypeError("Veri tipi liste olmalıdır.")
+
+    def get_max_value(self):
+        """
+        Veri listesindeki en büyük değeri döner.
+
+        Dönüş:
+        int, float: Veri listesindeki en büyük değer.
+
+        Örnek:
+        >>> ceml = CemirUtils([1, 2, 3])
+        >>> ceml.get_max_value()
+        3
+        """
+        if isinstance(self.data, list):
+            return max(self.data)
+        else:
+            raise TypeError("Veri tipi liste olmalıdır.")
+
+    def get_min_value(self):
+        """
+        Veri listesindeki en küçük değeri döner.
+
+        Dönüş:
+        int, float: Veri listesindeki en küçük değer.
+
+        Örnek:
+        >>> ceml = CemirUtils([1, 2, 3])
+        >>> ceml.get_min_value()
+        1
+        """
+        if isinstance(self.data, list):
+            return min(self.data)
+        else:
+            raise TypeError("Veri tipi liste olmalıdır.")
+
+    def filter_by_key(self, key, value):
+        """
+        Sözlükte veya sözlüklerin bulunduğu listede belirtilen anahtar ve değere sahip elemanları filtreler.
+
+        Parametreler:
+        key: Filtreleme yapılacak anahtar.
+        value: Filtreleme yapılacak değer.
+
+        Dönüş:
+        dict, list: Filtrelenmiş veri.
+
+        Örnek:
+        >>> cemd = CemirUtils({'a': 1, 'b': 2, 'c': 3})
+        >>> cemd.filter_by_key('b', 2)
+        {'b': 2}
+
+        >>> ceml = CemirUtils([{'a': 1}, {'b': 2}, {'a': 3}])
+        >>> ceml.filter_by_key('a', 1)
+        [{'a': 1}]
+        """
+        if isinstance(self.data, dict):
+            return {k: v for k, v in self.data.items() if k == key and v == value}
+        elif isinstance(self.data, list):
+            return [item for item in self.data if isinstance(item, dict) and item.get(key) == value]
+        else:
+            raise TypeError("Veri tipi sözlük veya sözlük listesi olmalıdır.")
+
+    def get_keys(self):
+        """
+        Sözlükteki veya sözlüklerin bulunduğu listedeki anahtarları döner.
+
+        Dönüş:
+        list: Anahtarlar listesi.
+
+        Örnek:
+        >>> cemd = CemirUtils({'a': 1, 'b': 2, 'c': 3})
+        >>> cemd.get_keys()
+        ['a', 'b', 'c']
+
+        >>> ceml = CemirUtils([{'a': 1}, {'b': 2}, {'a': 3}])
+        >>> ceml.get_keys()
+        ['a', 'b', 'a']
+        """
+        if isinstance(self.data, dict):
+            return list(self.data.keys())
+        elif isinstance(self.data, list):
+            return [key for item in self.data if isinstance(item, dict) for key in item.keys()]
+        else:
+            raise TypeError("Veri tipi sözlük veya sözlük listesi olmalıdır.")
+
+    def flatten_list(self):
+        """
+        Çok katmanlı listeyi tek katmana indirger.
+
+        Dönüş:
+        list: Tek katmanlı liste.
+
+        Örnek:
+        >>> ceml = CemirUtils([[1, 2], [3, 4], [5]])
+        >>> ceml.flatten_list()
+        [1, 2, 3, 4, 5]
+        """
+        if isinstance(self.data, list) and all(isinstance(i, list) for i in self.data):
+            return [item for sublist in self.data for item in sublist]
+        else:
+            raise TypeError("Veri tipi çok katmanlı liste olmalıdır.")
+
+    def merge_dicts(self, *dicts):
+        """
+        Verilen sözlükleri birleştirir.
+
+        Parametreler:
+        *dicts (dict): Birleştirilecek sözlükler.
+
+        Dönüş:
+        dict: Birleştirilmiş sözlük.
+
+        Örnek:
+        >>> ceml = CemirUtils({})
+        >>> ceml.merge_dicts({'a': 1}, {'b': 2})
+        {'a': 1, 'b': 2}
+        """
+        if all(isinstance(d, dict) for d in dicts):
+            merged = {}
+            for d in dicts:
+                merged.update(d)
+            return merged
+        else:
+            raise TypeError("Tüm parametreler sözlük olmalıdır.")
 
     def filter_greater_than(self, threshold):
         """
@@ -127,4 +308,3 @@ class CemirUtils:
             list: Azalan sırada sıralanmış liste.
         """
         return sorted(self.data, reverse=True)
-
