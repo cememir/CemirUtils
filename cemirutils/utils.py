@@ -1,3 +1,7 @@
+import json
+from urllib import request, parse
+
+
 class CemirUtils:
     def __init__(self, data):
         """
@@ -308,3 +312,144 @@ class CemirUtils:
             list: Azalan sırada sıralanmış liste.
         """
         return sorted(self.data, reverse=True)
+
+    def http_get(self, url, params=None, headers=None, verify_ssl=True):
+        """
+        GET isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        params (dict): URL parametreleri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None:
+            headers = {}
+
+        if params:
+            url += '?' + parse.urlencode(params)
+
+        req = request.Request(url, headers=headers)
+        response = request.urlopen(req, timeout=10,
+                                   context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_post(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        POST isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None:
+            headers = {}
+
+        if data:
+            data = parse.urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='POST')
+        response = request.urlopen(req, timeout=10,
+                                   context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_put(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        PUT isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None:
+            headers = {}
+
+        if data:
+            data = parse.urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='PUT')
+        response = request.urlopen(req, timeout=10,
+                                   context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_delete(self, url, headers=None, verify_ssl=True):
+        """
+        DELETE isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None:
+            headers = {}
+
+        req = request.Request(url, headers=headers, method='DELETE')
+        response = request.urlopen(req, timeout=10,
+                                   context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_patch(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        PATCH isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None:
+            headers = {}
+
+        if data:
+            data = parse.urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='PATCH')
+        response = request.urlopen(req, timeout=10,
+                                   context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content

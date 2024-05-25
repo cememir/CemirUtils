@@ -1,50 +1,28 @@
 from cemirutils import CemirUtils
 
-data_list = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
-data_dict = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+cemir_utils = CemirUtils(None)  # Veri kullanmadan örnek oluşturduk
 
-ceml = CemirUtils(data_list)
-cemd = CemirUtils(data_dict)
+# GET isteği
+get_response = cemir_utils.http_get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("GET Response:", get_response)
 
-# Veri listesinin çıktısını yazdır
-print(data_list)
+# POST isteği
+post_data = {"title": "foo", "body": "bar", "userId": 1}
+post_response = cemir_utils.http_post("https://jsonplaceholder.typicode.com/posts", data=post_data, verify_ssl=True)
+print("POST Response:", post_response)
 
-# Bir değerin frekansını bul
-print(ceml.get_frequency(2))
+# PUT isteği
+put_data = {"title": "foo", "body": "bar", "userId": 1}
+put_response = cemir_utils.http_put("https://jsonplaceholder.typicode.com/posts/1", data=put_data, verify_ssl=True)
+print("PUT Response:", put_response)
 
-# Listeyi tersine çevir
-print(ceml.reverse_list())
+# DELETE isteği
+delete_response = cemir_utils.http_delete("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("DELETE Response:", delete_response)
 
-# Sözlük verisi ile işlemler
-try:
-    print(ceml.multiply_by_scalar(2))
-except TypeError as e:
-    print(e)
+# PATCH isteği
+patch_data = {"title": "foo"}
+patch_response = cemir_utils.http_patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data,
+                                        verify_ssl=True)
+print("PATCH Response:", patch_response)
 
-try:
-    print(ceml.get_max_value())
-except TypeError as e:
-    print(e)
-
-try:
-    print(ceml.get_min_value())
-except TypeError as e:
-    print(e)
-
-# Sözlükte belirli bir anahtar-değer çiftini filtrele
-print(cemd.filter_by_key("b", 2))
-
-# Sözlükteki anahtarları al
-print(cemd.get_keys())
-
-# Çok katmanlı listeyi düzleştirme işlemi, burada hata beklenir çünkü veri tipi sözlük
-try:
-    # Çok katmanlı liste oluştur
-    nested_list = [[1, 2], [3, 4], [5, 6]]
-    cem_nested = CemirUtils(nested_list)
-    print(cem_nested.flatten_list())
-except TypeError as e:
-    print("eee", e)
-
-# Sözlükleri birleştirme işlemi
-print(cemd.merge_dicts({'e': 5}, {'f': 6}))
