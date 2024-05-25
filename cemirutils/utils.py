@@ -1,4 +1,7 @@
+import base64
 import json
+import ssl
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
 
 
@@ -453,3 +456,43 @@ class CemirUtils:
             return json.loads(content)
         else:
             return content
+
+    def http_server(self, port=8000, ip='127.0.0.1', ssl_cert=None, ssl_key=None, username=None, password=None, directory=None):
+        class CemirUtilsHTTPRequestHandler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=directory, **kwargs)
+
+            def do_GET(self):
+                if username and password:
+                    if not self.check_basic_auth(username, password):
+                        self.send_response(401)
+                        self.send_header('WWW-Authenticate', 'Basic realm="CemirUtils"')
+                        self.end_headers()
+                        self.wfile.write(b'Unauthorized')
+                        return
+
+                super().do_GET()
+
+            def check_basic_auth(self, username, password):
+                auth_header = self.headers.get('Authorization')
+                if auth_header is None:
+                    return False
+
+                auth_type, auth_value = auth_header.split(None, 1)
+                if auth_type.lower() != 'basic':
+                    return False
+
+                encoded_credentials = auth_value.encode('utf-8')
+                credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+                auth_username, auth_password = credentials.split(':', 1)
+
+                return auth_username == username and auth_password == password
+
+        httpd = HTTPServer((ip, port), CemirUtilsHTTPRequestHandler)
+
+        if ssl_cert and ssl_key:
+            httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_cert, keyfile=ssl_key, server_side=True)
+            print(f"Starting HTTP server with SSL on https://{ip}:{port}")
+
+        print(f"Starting HTTP server on http://{ip}:{port}")
+        httpd.serve_forever()
