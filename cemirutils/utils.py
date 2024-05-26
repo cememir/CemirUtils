@@ -16,6 +16,50 @@ class CemirUtils:
         """
         self.data = data
 
+    def getmethods(self):
+        """
+        CemirUtils sınıfının mevcut tüm metodlarının isimlerini yazdırır.
+        """
+        return [method for method in dir(CemirUtils) if callable(getattr(CemirUtils, method)) and not method.startswith("__")]
+
+
+    def replace_multiple(self, text, replacements):
+        """
+        Verilen metinde çoklu değiştirme işlemi yapar.
+
+
+        Args:
+            text (str): Değiştirilecek metin.
+            replacements (dict): Değiştirilecek değer çiftleri (anahtar: eski değer, değer: yeni değer).
+
+
+        Returns:
+            str: Değiştirilmiş metin.
+        """
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        return text
+
+    def replace_with_last(self, text, values):
+        """
+        Verilen metinde belirtilen tüm değerleri son değer ile değiştirir.
+
+
+        Args:
+            text (str): Değiştirilecek metin.
+            values (tuple): Değiştirilecek değerler.
+
+
+        Returns:
+            str: Değiştirilmiş metin.
+        """
+        if not values:
+            return text
+        last_value = values[-1]
+        for value in values[:-1]:
+            text = text.replace(value, last_value)
+        return text
+
     def multiply_by_scalar(self, scalar):
         """
         Veri listesindeki her bir elemanı verilen skaler değer ile çarpar.
