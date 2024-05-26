@@ -1,9 +1,11 @@
 import base64
 import json
 import ssl
-
+from calendar import monthrange
+from datetime import datetime, timedelta
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
+
 
 
 class CemirUtils:
@@ -23,6 +25,243 @@ class CemirUtils:
         """
         return [method for method in dir(CemirUtils) if callable(getattr(CemirUtils, method)) and not method.startswith("__")]
 
+    def days_between_dates(self, date1, date2):
+        """
+        İki tarih arasındaki gün sayısını hesaplar.
+
+
+        Args:
+            date1 (str): İlk tarih (YYYY-MM-DD formatında).
+            date2 (str): İkinci tarih (YYYY-MM-DD formatında).
+
+
+        Returns:
+            int: İki tarih arasındaki gün sayısı.
+        """
+        date_format = "%Y-%m-%d"
+        d1 = datetime.strptime(date1, date_format)
+        d2 = datetime.strptime(date2, date_format)
+        delta = d2 - d1
+        return delta.days
+
+    def hours_minutes_seconds_between_times(self, time1, time2):
+        """
+        İki zaman arasındaki saat, dakika ve saniye farkını hesaplar.
+
+
+        Args:
+            time1 (str): İlk zaman (HH:MM:SS formatında).
+            time2 (str): İkinci zaman (HH:MM:SS formatında).
+
+
+        Returns:
+            tuple: Saat, dakika ve saniye farkı.
+        """
+        time_format = "%H:%M:%S"
+        t1 = datetime.strptime(time1, time_format)
+        t2 = datetime.strptime(time2, time_format)
+        delta = t2 - t1
+        total_seconds = delta.total_seconds()
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return int(hours), int(minutes), int(seconds)
+
+    def time_until_date(self, future_date):
+        """
+        Belirli bir tarihe kadar kalan yıl, ay, gün, saat, dakika ve saniye hesaplar.
+
+
+        Args:
+            future_date (str): Gelecek tarih (YYYY-MM-DD HH:MM:SS formatında).
+
+
+        Returns:
+            tuple: Kalan gün, saat, dakika ve saniye.
+        """
+        date_format = "%Y-%m-%d %H:%M:%S"
+        now = datetime.now()
+        future = datetime.strptime(future_date, date_format)
+        delta = future - now
+        days = delta.days
+        seconds = delta.seconds
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        seconds = seconds % 60
+        return days, hours, minutes, seconds
+
+    def add_days_to_date(self, date, days):
+        """
+        Belirtilen tarihe gün sayısı ekleyerek yeni bir tarih hesaplar.
+
+
+        Args:
+            date (str): Başlangıç tarihi (YYYY-MM-DD formatında).
+            days (int): Eklenecek gün sayısı.
+
+
+        Returns:
+            datetime: Yeni tarih.
+        """
+        date_format = "%Y-%m-%d"
+        d = datetime.strptime(date, date_format)
+        new_date = d + timedelta(days=days)
+        return new_date
+
+    def add_days_and_format(self, date, days):
+        """
+        Belirtilen tarihe gün sayısı ekleyip yeni tarihi istenilen dilde gün adı ile birlikte formatlar.
+
+
+        Args:
+            date (str): Başlangıç tarihi (YYYY-MM-DD formatında).
+            days (int): Eklenecek gün sayısı.
+            locale (str): Dil kodu (varsayılan 'en').
+
+
+        Returns:
+            str: Formatlanmış yeni tarih ve gün adı.
+        """
+        new_date = self.add_days_to_date(date, days)
+        formatted_date = new_date.strftime("%Y-%m-%d")
+        return f"{formatted_date} ({new_date})"
+
+    def is_weekend(self, date):
+        """
+        Bir tarihin hafta sonu olup olmadığını kontrol eder.
+
+
+        Args:
+            date (str): Tarih (YYYY-MM-DD formatında).
+
+
+        Returns:
+            bool: Hafta sonu ise True, değilse False.
+        """
+        date_format = "%Y-%m-%d"
+        d = datetime.strptime(date, date_format)
+        return d.weekday() >= 5  # 5 = Cumartesi, 6 = Pazar
+
+    def is_leap_year(self, year):
+        """
+        Bir yılın artık yıl olup olmadığını kontrol eder.
+
+
+        Args:
+            year (int): Yıl.
+
+
+        Returns:
+            bool: Artık yıl ise True, değilse False.
+        """
+        return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
+    def days_in_month(self, year, month):
+        """
+        Bir ay içindeki gün sayısını döndürür.
+
+
+        Args:
+            year (int): Yıl.
+            month (int): Ay.
+
+
+        Returns:
+            int: Ay içindeki gün sayısı.
+        """
+        return monthrange(year, month)[1]
+
+    def next_weekday(self, date, weekday):
+        """
+        Bir tarihten sonraki belirli bir günün tarihini döndürür (örneğin, bir sonraki Pazartesi).
+
+
+        Args:
+            date (str): Başlangıç tarihi (YYYY-MM-DD formatında).
+            weekday (int): Hedef gün (0 = Pazartesi, 1 = Salı, vb.).
+
+
+        Returns:
+            datetime: Bir sonraki hedef günün tarihi.
+        """
+        date_format = "%Y-%m-%d"
+        d = datetime.strptime(date, date_format)
+        days_ahead = weekday - d.weekday()
+        if days_ahead <= 0:  # Hedef gün zaten bu hafta geçmiş
+            days_ahead += 7
+        return d + timedelta(days=days_ahead)
+
+    def format_date_in_locale(self, date, locale='en', format='full'):
+        """
+        Bir tarihi istenilen dilde ve formatta yazdırır.
+
+
+        Args:
+            date (str): Tarih (YYYY-MM-DD formatında).
+            locale (str): Dil kodu (varsayılan 'en').
+            format (str): Tarih formatı (varsayılan 'full').
+
+
+        Returns:
+            str: Formatlanmış tarih.
+        """
+        date_format = "%Y-%m-%d"
+        d = datetime.strptime(date, date_format)
+        return d
+
+    def time_since(self, past_date):
+        """
+        Belirli bir tarihten geçen yıl, ay, gün, saat, dakika ve saniyeyi hesaplar.
+
+        Parametre:
+        past_date (str): Geçmiş tarih (yyyy-mm-dd HH:MM:SS formatında)
+
+        Dönüş:
+        dict: Geçen yıl, ay, gün, saat, dakika ve saniyeleri içeren sözlük.
+
+        Örnek:
+        >>> cem = CemirUtils(None)
+        >>> cem.time_since('2020-01-01 00:00:00')
+        {'years': 4, 'months': 4, 'days': 25, 'hours': 14, 'minutes': 35, 'seconds': 10}
+        """
+        past_date = datetime.strptime(past_date, '%Y-%m-%d %H:%M:%S')
+        now = datetime.now()
+        delta = now - past_date
+
+        years = delta.days // 365
+        months = (delta.days % 365) // 30
+        days = (delta.days % 365) % 30
+        hours = delta.seconds // 3600
+        minutes = (delta.seconds % 3600) // 60
+        seconds = delta.seconds % 60
+
+        return {
+            'years': years,
+            'months': months,
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': seconds
+        }
+    def business_days_between_dates(self, date1, date2):
+        """
+        İki tarih arasındaki iş günü sayısını hesaplar.
+
+
+        Args:
+        date1 (str): İlk tarih (YYYY-MM-DD formatında).
+        date2 (str): İkinci tarih (YYYY-MM-DD formatında).
+
+
+        Returns:
+            int: İki tarih arasındaki iş günü sayısı.
+        """
+        date_format = "%Y-%m-%d"
+        d1 = datetime.strptime(date1, date_format)
+        d2 = datetime.strptime(date2, date_format)
+        day_generator = (d1 + timedelta(x) for x in range((d2 - d1).days + 1))
+        business_days = sum(1 for day in day_generator if day.weekday() < 5)
+        return business_days
 
     def replace_multiple(self, text, replacements):
         """
