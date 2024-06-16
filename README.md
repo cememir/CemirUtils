@@ -28,11 +28,78 @@ pip freeze | grep cemir
 
 # Kullanım Örnekleri
 
+## Tetiklenen uygun koşulların satır numaralarını ve koşul ifadelerini göster
+
+```python
+from cemirutils import CemirUtilsErrors
+
+cemir_utils = CemirUtilsErrors()
+
+@cemir_utils.condition_collector
+def test_function(x, y, z):
+    if x > 15:
+        print("x is greater than 15")
+    elif x < 15 and y > 10:
+        print("x is less than 15 and y is greater than 10")
+    else:
+        print("x is not within the expected range or y is not greater than 10")
+
+    if y == 20:
+        print("y is exactly 20")
+    elif y >= 15:
+        print("y is greater than or equal to 15")
+    else:
+        print("y is less than 15")
+
+    if z == "hello":
+        print("z is 'hello'")
+    elif z == "world":
+        print("z is 'world'")
+    else:
+        print("z is something else")
+
+    if x == 10:
+        print("x is 10")
+    elif x >= 10:
+        print("x is greater than or equal to 10")
+    else:
+        print("x is less than 10")
+
+    if y % 2 == 0:
+        print("y is even")
+    else:
+        print("y is odd")
+
+    if z.startswith("hq"):
+        print("z starts with 'h'")
+    elif z.startswith("w"):
+        print("z starts with 'w'")
+    else:
+        print("z starts with another letter")
+
+test_function(10, 20, "hello")
+
+# Output:
+# x is less than 15 and y is greater than 10
+# y is exactly 20
+# z is 'hello'
+# x is 10
+# y is even
+# z starts with another letter
+
+# Line 10: elif x < 15 and y > 10:
+# Line 15: if y == 20:
+# Line 22: if z == "hello":
+# Line 29: if x == 10:
+# Line 36: if y % 2 == 0:
+# Line 45: else:
+```
+
 
 ## IPGeolocation işlemleri.
 
 ```python
-from cemirutils.utils import IPGeolocation
+from cemirutils import IPGeolocation
 
 ip_geolocator = IPGeolocation()
 
@@ -48,9 +115,10 @@ print(location_info)
 
 ## PostgreSQL için CRUD işlemleri.
 ```python
-from cemirutils import CemirUtils, Dict2Dot
+from datetime import datetime, timedelta
+from cemirutils import CemirPostgreSQL, Dict2Dot
 
-utils = CemirUtils(data=False, dbname='test_db3', dbuser='postgres', dbpassword='', dbport=5435, dbcreate_db_if_not_exists=True)
+utils = CemirPostgreSQL(dbname='test_db3', dbuser='postgres', dbpassword='', dbport=5435, dbcreate_db_if_not_exists=True)
 
 # print(utils.psql_create_table('test_table_flat', 'id SERIAL PRIMARY KEY, name VARCHAR(100), surname VARCHAR(100)'))
 # print(utils.psql_create_table('test_table_json', 'id SERIAL PRIMARY KEY, dates DATE, content JSONB'))
@@ -81,6 +149,9 @@ print(utils.psql_read('test_table_json'))
 
 ### Linux komutlarını Python üzerinden çağırarak işlem yapmak için kullanılır.
 ```python
+from cemirutils import CemirUtils
+utils = CemirUtils()
+
 # Dosya ve dizinleri listeleme örneği
 print(utils.linux_ls("."))
 
@@ -126,7 +197,7 @@ from cemirutils import CemirUtils
 
 # Mevcut tüm metodların isimlerini yazdır
 cemir_utils = CemirUtils(None)
-print(cemir_utils.getmethods())
+print(cemir_utils.get_methods())
 
 
 get_response = cemir_utils.http_get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)

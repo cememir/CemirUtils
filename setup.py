@@ -4,11 +4,11 @@ from setuptools import setup, find_packages
 
 setup(
     name='cemirutils',
-    version='1.0.1',
+    version='1.0.2',
     packages=find_packages(),
     install_requires=[],
-    author='Cem Emir Yüksektepe / Muslu Yüksektepe',
-    author_email='cememir2017@gmail.com, musluyuksektepe@gmail.com',
+    author='Cem Emir Yüksektepe / Muslu Yüksektepe (musluyuksektepe@gmail.com)',
+    author_email='cememir2017@gmail.com',
     description='Linux ve Pythonda sık kullanılan tüm komut ve kütüphaneleri tek yerden, basit veri işleme işlevlerini içeren bir Python yardımcı kütüphanesidir.',
     long_description=open('README.md', encoding="utf-8").read(),
     long_description_content_type='text/markdown',

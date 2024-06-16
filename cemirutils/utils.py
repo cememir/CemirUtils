@@ -1,16 +1,73 @@
 import base64
 import csv
+import inspect
 import json
 import os
 import sqlite3
 import ssl
 import subprocess
+import sys
 import urllib.request
 import zipfile
 from calendar import monthrange
 from datetime import datetime, timedelta
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
+
+
+class CemirUtilsErrors:
+    def __init__(self):
+        self.conditions = []
+
+    def condition_collector(self, func):
+        def wrapper(*args, **kwargs):
+            self.conditions.clear()
+            source_lines, starting_line_number = inspect.getsourcelines(func)
+            local_vars = {}
+
+            def trace_function(frame, event, arg):
+                if event == 'return':
+                    local_vars.update(frame.f_locals)
+                return trace_function
+
+            sys.settrace(trace_function)
+            result = func(*args, **kwargs)
+            sys.settrace(None)
+
+            skip_next_conditions = False
+
+            for idx, line in enumerate(source_lines):
+                stripped_line = line.strip()
+                if stripped_line.startswith("if"):
+                    skip_next_conditions = False  # Reset at the start of each new if block
+                    condition = stripped_line.split(":")[0].strip()
+                    try:
+                        if eval(condition.split(" ", 1)[1], globals(), local_vars):
+                            self.conditions.append((stripped_line, starting_line_number + idx))
+                            skip_next_conditions = True
+                    except Exception:
+                        pass
+                elif stripped_line.startswith("elif"):
+                    if not skip_next_conditions:
+                        condition = stripped_line.split(":")[0].strip()
+                        try:
+                            if eval(condition.split(" ", 1)[1], globals(), local_vars):
+                                self.conditions.append((stripped_line, starting_line_number + idx))
+                                skip_next_conditions = True
+                        except Exception:
+                            pass
+                elif stripped_line.startswith("else"):
+                    if not skip_next_conditions:
+                        self.conditions.append((stripped_line, starting_line_number + idx))
+                    skip_next_conditions = True
+
+            # Print the collected conditions with line numbers
+            for condition, line_num in self.conditions:
+                print(f"Line {line_num}: {condition}")
+
+            return result
+
+        return wrapper
 
 
 class Dict2Dot(dict):
