@@ -1,15 +1,340 @@
 import base64
+import csv
 import json
+import os
+import sqlite3
 import ssl
+import subprocess
+import urllib.request
+import zipfile
 from calendar import monthrange
 from datetime import datetime, timedelta
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
 
 
+class Dict2Dot(dict):
+    def __getattr__(self, key):
+        if key in self:
+            value = self[key]
+            if isinstance(value, dict):
+                return Dict2Dot(value)
+            return value
+        else:
+            raise AttributeError(f"'{self.__class__.__name__}' objesinde '{key}' anahtarı bulunamadı.")
+
+
+class IPGeolocation:
+    def __init__(self):
+        self.database_url = "https://download.ip2location.com/lite/IP2LOCATION-LITE-DB1.CSV.ZIP"
+        self.database_file = "IP2LOCATION-LITE-DB1.CSV"
+        self.download_path = os.path.join(os.getcwd(), "ip_database.zip")
+        self.db_file = os.path.join(os.getcwd(), "ip_geolocation.db")
+        self.connection = None
+        self.cursor = None
+
+    def ip_to_int(self, ip):
+        parts = ip.split('.')
+        return int(parts[0]) * 256 ** 3 + int(parts[1]) * 256 ** 2 + int(parts[2]) * 256 + int(parts[3])
+
+    def int_to_ip(self, ip_int):
+        octet_1 = ip_int // (256 ** 3) % 256
+        octet_2 = ip_int // (256 ** 2) % 256
+        octet_3 = ip_int // 256 % 256
+        octet_4 = ip_int % 256
+        return f"{octet_1}.{octet_2}.{octet_3}.{octet_4}"
+
+    def download_database(self, force_download=False):
+        """
+        IP2Location veritabanını indirir.
+
+        Args:
+            force_download (bool): Zip dosyasını yeniden indirme zorunluluğu.
+        """
+        try:
+            if force_download or not os.path.isfile(self.database_file):
+                # Veritabanı dosyasını indir
+                print("Veritabanı dosyasını indiriyor...")
+                urllib.request.urlretrieve(self.database_url, self.download_path)
+                print("Veritabanı dosyasını indirildi!")
+
+                # Zip dosyasını çıkart
+                with zipfile.ZipFile(self.download_path, "r") as zip_ref:
+                    zip_ref.extractall(os.getcwd())
+        except Exception as e:
+            print(f"Hata oluştu: {e}")
+
+    def create_sqlite_db(self):
+        """
+        SQLite veritabanını oluşturur ve Csv dosyasını içine aktarır.
+        """
+        try:
+            self.connection = sqlite3.connect(self.db_file)
+            self.cursor = self.connection.cursor()
+
+            print("SQlite Veritabanı Tabloyu oluşturuluyor...")
+            # Tabloyu oluştur
+            self.cursor.execute('''CREATE TABLE IF NOT EXISTS ip_geolocation
+                        (ip_start INTEGER PRIMARY KEY,
+                        ip_end INTEGER,
+                        country_code TEXT,
+                        country_name TEXT)''')
+
+            # Csv dosyasını oku ve veritabanına aktar
+            with open(self.database_file, "r", encoding="utf-8") as csvfile:
+                csv_reader = csv.reader(csvfile)
+                next(csv_reader)  # Başlık satırını atla
+                for row in csv_reader:
+                    self.cursor.execute("INSERT INTO ip_geolocation VALUES (?, ?, ?, ?)", row)
+
+            print("SQlite Veritabanı Tabloyu oluşturdu!")
+
+            # Değişiklikleri kaydet
+            self.connection.commit()
+        except Exception as e:
+            print(f"Hata oluştu: {e}")
+
+    def get_ip_location(self, ip_address, force_download=False):
+        """
+        Verilen IP adresinin lokasyon bilgisini döndürür.
+
+        Args:
+            ip_address (str): IP adresi.
+            force_download (bool): Zip dosyasını yeniden indirme zorunluluğu.
+
+        Returns:
+            str: IP adresinin lokasyon bilgisi.
+        """
+        try:
+            # SQLite veritabanını oluştur (eğer daha önce oluşturulmadıysa)
+            if not os.path.isfile(self.db_file) or force_download:
+                self.download_database(force_download)
+                self.create_sqlite_db()
+
+            # IP adresinin lokasyon bilgisini sorgula
+            print("IP adresinin lokasyon bilgisini sorgula...")
+            self.connection = sqlite3.connect(self.db_file)
+            self.cursor = self.connection.cursor()
+
+            # SQLite sorgusu
+            query = "SELECT * FROM ip_geolocation WHERE ip_start <= ? AND ip_end >= ?"
+            ip_int = self.ip_to_int(ip_address)
+            self.cursor.execute(query, (ip_int, ip_int))
+            row = self.cursor.fetchone()
+            if row:
+                return {"status": True, "ip_address": ip_address, "ipint": ip_int, "country_code": row[2], "country_name": row[3]}
+            else:
+                return {"status": False, "ip_address": ip_address}
+        except Exception as e:
+            print(f"Hata oluştu: {e}")
+            return None
+
+
+class CemirPostgreSQL:
+    def __init__(self, dbhost, dbport, dbuser, dbpassword, dbname, timeout=10, dbcreate_db_if_not_exists=False):
+        self.dbhost = dbhost
+        self.dbport = dbport
+        self.dbuser = dbuser
+        self.dbpassword = dbpassword
+        self.dbname = dbname
+        self.timeout = timeout
+        self.dbcreate_db_if_not_exists = dbcreate_db_if_not_exists
+
+        if dbcreate_db_if_not_exists:
+            self.create_database(dbname)
+
+    def get_methods(self):
+        """
+        CemirPostgreSQL sınıfının mevcut tüm metodlarının isimlerini yazdırır.
+        """
+        return [method for method in dir(CemirPostgreSQL) if callable(getattr(CemirPostgreSQL, method)) and not method.startswith("__")]
+
+    def parse_output(self, output):
+
+        """
+        psql komutunun çıktısını parse ederek dict yapısına çevirir.
+
+        Args:
+            output (str): psql komutunun çıktısı.
+
+        Returns:
+            dict: Dict formatında çıktı.
+        """
+        lines = output.strip().split('\n')
+        headers = lines[0].split('|')
+        data = []
+
+        for line in lines[2:-1]:  # İlk iki satır ve son satır başlık ve ayırıcılar olduğu için atlanır
+            values = line.split('|')
+            data.append({header.strip(): value.strip() for header, value in zip(headers, values)})
+
+        return data
+
+    def execute_query(self, query, dbname=None):
+        """
+        Veritabanına SQL sorgusu gönderir ve sonucu döndürür.
+
+        Args:
+            query (str): SQL sorgusu.
+            dbname (str, optional): Veritabanı adı. Eğer verilmezse, self.dbname kullanılır.
+
+        Returns:
+            str: Sorgu sonucu veya JSON formatında hata bilgisi.
+        """
+        if dbname is None:
+            dbname = self.dbname
+
+        query = query.replace("\n", "").strip()
+        command = f'''PGPASSWORD={self.dbpassword} psql -h {self.dbhost} -p {self.dbport} -U {self.dbuser} -d {dbname} -c {json.dumps(query, ensure_ascii=False)}'''
+
+        try:
+            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=self.timeout)
+            if result.returncode != 0:
+                error_info = {
+                    "error": "Query failed",
+                    "message": result.stderr.strip()
+                }
+                return json.dumps(error_info, ensure_ascii=False)
+            return result.stdout.strip()
+        except subprocess.TimeoutExpired as e:
+            error_info = {
+                "error": "TimeOut",
+                "message": f"timed out"
+            }
+            return json.dumps(error_info, ensure_ascii=False)
+
+    def raw(self, query, print_query=False):
+        if print_query: print(query)
+        return self.execute_query(query)
+
+    def insert(self, table_name, columns, values, get_id=False):
+        """
+        Veritabanına yeni kayıt ekler.
+
+        Args:
+            table_name (str): Tablo adı.
+            columns (tuple): Kolon adları (örnek: ("id", "name", "data")).
+            values (tuple): Kolon değerleri (örnek: (1, "John Doe", {"age": 30, "city": "Istanbul"})).
+            get_id (bool): İşlem yapılan ID
+
+        Returns:
+            str: Sorgu sonucu veya JSON formatında hata bilgisi.
+        """
+        columns_str = ', '.join(columns)
+
+        formatted_values = []
+        for value in values:
+            if isinstance(value, dict):
+                formatted_values.append(f"'{json.dumps(value)}'::jsonb")
+            else:
+                formatted_values.append(f"'{value}'")
+
+        values_str = ', '.join(formatted_values)
+        query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({values_str})"
+        if get_id:
+            query += f" RETURNING id;"
+            try:
+                result = self.execute_query(query).split()[2]
+                return {"error": False, "id": int(result)}
+            except ValueError:
+                return self.execute_query(query)
+
+        return self.execute_query(query)
+
+    def create_database(self, dbname):
+        """
+        Belirtilen ad ile yeni bir veritabanı oluşturur.
+
+        Args:
+            dbname (str): Oluşturulacak veritabanının adı.
+
+        Returns:
+            str: Sorgu sonucu veya JSON formatında hata bilgisi.
+        """
+        query = f"CREATE DATABASE {dbname};"
+        return self.execute_query(query, dbname='postgres')
+
+    def create_table(self, table_name, schema):
+        """
+        Veritabanında tablo oluşturur.
+
+        Args:
+            table_name (str): Tablo adı.
+            schema (str): Tablo şeması (örnek: "id SERIAL PRIMARY KEY, name VARCHAR(100), data JSONB").
+
+        Returns:
+            str: Sorgu sonucu veya JSON formatında hata bilgisi.
+        """
+        query = f"CREATE TABLE {table_name} ({schema});"
+        return self.execute_query(query)
+
+    def read(self, table_name, columns='*', condition=None):
+        if isinstance(columns, tuple):
+            columns = ', '.join(columns)
+
+        query = f"SELECT {columns} FROM {table_name}"
+
+        if condition:
+            query += f" WHERE {condition}"
+
+        query += ";"
+
+        result = self.parse_output(self.execute_query(query))
+
+        if len(result) == 1:
+            print(result[0], type(result[0]))
+            return result[0]
+        return result
+
+    def update(self, table_name, updates, condition, get_id=False):
+        """
+        Veritabanındaki kaydı günceller.
+
+        Args:
+            table_name (str): Tablo adı.
+            updates (dict): Güncellemeler (örnek: {"name": "Jane Doe"}).
+            condition (str): Koşul (örnek: "id = 1").
+            get_id (bool): İşlem yapılan ID
+        Returns:
+            str: Sorgu sonucu veya JSON formatında hata bilgisi.
+        """
+        update_str = ', '.join(f"{k} = '{json.dumps(v)}'" if isinstance(v, dict) else f"{k} = '{v}'" for k, v in updates.items())
+        query = f"UPDATE {table_name} SET {update_str} WHERE {condition}"
+        if get_id:
+            query += f" RETURNING id;"
+            try:
+                result = self.execute_query(query).split()[2]
+                return {"error": False, "id": int(result)}
+            except ValueError:
+                return self.execute_query(query)
+
+        return self.execute_query(query)
+
+    def delete(self, table_name, condition):
+        """
+        Veritabanındaki kaydı siler.
+
+        Args:
+            table_name (str): Tablo adı.
+            condition (str): Koşul (örnek: "id = 1").
+
+        Returns:
+            str: Sorgu sonucu veya JSON formatında hata bilgisi.
+        """
+        query = f"DELETE FROM {table_name} WHERE {condition};"
+        try:
+            result = int(self.execute_query(query).split()[1])
+            if result == 0:
+                return {"error": True, "status": "record_not_found"}
+            if result > 0:
+                return {"error": False, "status": "record_deleted"}
+        except:
+            return self.execute_query(query)
+
 
 class CemirUtils:
-    def __init__(self, data):
+
+    def __init__(self, data=None):
         """
         CemirUtils sınıfının yapıcı fonksiyonu.
         Verilen veriyi sınıfın 'data' değişkenine atar.
@@ -18,14 +343,176 @@ class CemirUtils:
         data (list, dict): İşlenecek sayısal veri listesi veya sözlük.
         """
         self.data = data
+        self.default_headers = {"User-Agent": "CemirUtils"}
 
-    def getmethods(self):
+    def get_methods(self):
         """
         CemirUtils sınıfının mevcut tüm metodlarının isimlerini yazdırır.
         """
         return [method for method in dir(CemirUtils) if callable(getattr(CemirUtils, method)) and not method.startswith("__")]
 
-    def days_between_dates(self, date1, date2):
+    # Linux komutlarını Python üzerinden çağırarak işlem yapmak için kullanılır.
+
+    def linux_ls(self, path="."):
+        """
+        List files and directories in the given path.
+        """
+        return subprocess.run(["ls", "-l", path], capture_output=True, text=True).stdout
+
+    def linux_cat(self, filename):
+        """
+        Display the contents of a file.
+        """
+        return subprocess.run(["cat", filename], capture_output=True, text=True).stdout
+
+    def linux_touch(self, filename):
+        """
+        Create an empty file or update the access and modification times of a file.
+        """
+        return subprocess.run(["touch", filename], capture_output=True, text=True).stdout
+
+    def linux_cp(self, source, destination):
+        """
+        Copy files or directories from source to destination.
+        """
+        return subprocess.run(["cp", "-r", source, destination], capture_output=True, text=True).stdout
+
+    def linux_mv(self, source, destination):
+        """
+        Move or rename files or directories from source to destination.
+        """
+        return subprocess.run(["mv", source, destination], capture_output=True, text=True).stdout
+
+    def linux_rm(self, path):
+        """
+        Remove files or directories.
+        """
+        return subprocess.run(["rm", "-r", path], capture_output=True, text=True).stdout
+
+    def linux_mkdir(self, directory):
+        """
+        Create a new directory.
+        """
+        return subprocess.run(["mkdir", directory], capture_output=True, text=True).stdout
+
+    def linux_rmdir(self, directory):
+        """
+        Remove an empty directory.
+        """
+        return subprocess.run(["rmdir", directory], capture_output=True, text=True).stdout
+
+    def linux_cut(self, delimiter, fields, filename):
+        """
+        Extract fields from a file based on a delimiter.
+        """
+        return subprocess.run(["cut", f"-d{delimiter}", f"-f{fields}", filename], capture_output=True, text=True).stdout
+
+    def linux_gzip(self, filename):
+        """
+        Compress or decompress files using gzip.
+        """
+        return subprocess.run(["gzip", filename], capture_output=True, text=True).stdout
+
+    def linux_find(self, path, filename):
+        """
+        Search for files in a directory hierarchy.
+        """
+        return subprocess.run(["find", path, "-name", filename], capture_output=True, text=True).stdout
+
+    def linux_grep(self, pattern, filename):
+        """
+        Search for a pattern in a file.
+        """
+        return subprocess.run(["grep", pattern, filename], capture_output=True, text=True).stdout
+
+    # def tcp_listen_for_icmp(self, print_query=False, insert_db=True):
+    #     """
+    #     NOT: scriptin çalışması için sudo gerektirir.
+    #
+    #     Örnek Servis:
+    #
+    #     sudo nano /etc/systemd/system/ping_logger.service
+    #
+    #         [Unit]
+    #         Description=Ping Logger Service
+    #         After=network.target
+    #
+    #         [Service]
+    #         ExecStart=/usr/bin/python3 /path/to/ping_logger.py
+    #         Restart=always
+    #         User=root
+    #         Group=root
+    #
+    #         [Install]
+    #         WantedBy=multi-user.target
+    #
+    #     * sudo systemctl daemon-reload
+    #     * sudo systemctl enable ping_logger
+    #     * sudo systemctl start ping_logger
+    #
+    #     :param insert_db: bool
+    #     :param print_query: bool
+    #     :return:
+    #     """
+    #     if insert_db:
+    #         self.insert_raw("""CREATE TABLE ping_log (id SERIAL PRIMARY KEY, contents JSONB NOT NULL);""")
+    #
+    #     # Raw soket oluşturma
+    #     try:
+    #         sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+    #     except:
+    #         print("raw soket dinleme işlemleri için sudo yetkisi gerekir!!")
+    #         exit(1)
+    #
+    #     while True:
+    #         # Paket alımı
+    #         packet, addr = sock.recvfrom(65565)
+    #         packet_length = len(packet)
+    #
+    #         # IP başlığı ayrıştırma
+    #         ip_header = packet[0:20]
+    #         iph = struct.unpack('!BBHHHBBH4s4s', ip_header)
+    #         version_ihl = iph[0]
+    #         version = version_ihl >> 4
+    #         ihl = version_ihl & 0xF
+    #         iph_length = ihl * 4
+    #         ttl = iph[5]
+    #         protocol = iph[6]
+    #         source_ip = socket.inet_ntoa(iph[8])
+    #         dest_ip = socket.inet_ntoa(iph[9])
+    #
+    #         # ICMP başlığı ayrıştırma
+    #         icmp_header = packet[iph_length:iph_length + 8]
+    #         icmph = struct.unpack('!BBHHH', icmp_header)
+    #         icmp_type = icmph[0]
+    #         code = icmph[1]
+    #         checksum = icmph[2]
+    #         packet_id = icmph[3]
+    #         sequence = icmph[4]
+    #
+    #         if icmp_type == 8:  # Ping Request
+    #             timestamp = datetime.now()
+    #             contents = {
+    #                 "sequence": sequence,
+    #                 "dest_ip": dest_ip,
+    #                 "source_ip": source_ip,
+    #                 "ttl": ttl,
+    #                 "timestamp": timestamp.isoformat(),
+    #                 "packet_length": packet_length,
+    #
+    #                 # "icmp_type": icmp_type,
+    #                 # "checksum": checksum,
+    #                 # "packet_id": packet_id,
+    #                 # "protocol": protocol
+    #             }
+    #
+    #             if insert_db:
+    #                 self.insert_raw(f"""INSERT INTO ping_log (contents) VALUES ('{json.dumps(contents)}');""")
+    #
+    #             if print_query:
+    #                 print(contents)
+
+    def time_days_between_dates(self, date1, date2):
         """
         İki tarih arasındaki gün sayısını hesaplar.
 
@@ -44,7 +531,7 @@ class CemirUtils:
         delta = d2 - d1
         return delta.days
 
-    def hours_minutes_seconds_between_times(self, time1, time2):
+    def time_hours_minutes_seconds_between_times(self, time1, time2):
         """
         İki zaman arasındaki saat, dakika ve saniye farkını hesaplar.
 
@@ -90,7 +577,7 @@ class CemirUtils:
         seconds = seconds % 60
         return days, hours, minutes, seconds
 
-    def add_days_to_date(self, date, days):
+    def time_add_days_to_date(self, date, days):
         """
         Belirtilen tarihe gün sayısı ekleyerek yeni bir tarih hesaplar.
 
@@ -99,6 +586,9 @@ class CemirUtils:
             date (str): Başlangıç tarihi (YYYY-MM-DD formatında).
             days (int): Eklenecek gün sayısı.
 
+        * Örnek:
+        >>> utils =CemirUtils()
+        >>> utils.time_add_days_to_date("2024-05-10", 100)
 
         Returns:
             datetime: Yeni tarih.
@@ -108,7 +598,7 @@ class CemirUtils:
         new_date = d + timedelta(days=days)
         return new_date
 
-    def add_days_and_format(self, date, days):
+    def time_add_days_and_format(self, date, days):
         """
         Belirtilen tarihe gün sayısı ekleyip yeni tarihi istenilen dilde gün adı ile birlikte formatlar.
 
@@ -116,17 +606,15 @@ class CemirUtils:
         Args:
             date (str): Başlangıç tarihi (YYYY-MM-DD formatında).
             days (int): Eklenecek gün sayısı.
-            locale (str): Dil kodu (varsayılan 'en').
-
 
         Returns:
             str: Formatlanmış yeni tarih ve gün adı.
         """
-        new_date = self.add_days_to_date(date, days)
+        new_date = self.time_add_days_to_date(date, days)
         formatted_date = new_date.strftime("%Y-%m-%d")
         return f"{formatted_date} ({new_date})"
 
-    def is_weekend(self, date):
+    def time_is_weekend(self, date):
         """
         Bir tarihin hafta sonu olup olmadığını kontrol eder.
 
@@ -142,7 +630,7 @@ class CemirUtils:
         d = datetime.strptime(date, date_format)
         return d.weekday() >= 5  # 5 = Cumartesi, 6 = Pazar
 
-    def is_leap_year(self, year):
+    def time_is_leap_year(self, year):
         """
         Bir yılın artık yıl olup olmadığını kontrol eder.
 
@@ -156,7 +644,7 @@ class CemirUtils:
         """
         return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
-    def days_in_month(self, year, month):
+    def time_days_in_month(self, year, month):
         """
         Bir ay içindeki gün sayısını döndürür.
 
@@ -171,7 +659,7 @@ class CemirUtils:
         """
         return monthrange(year, month)[1]
 
-    def next_weekday(self, date, weekday):
+    def time_next_weekday(self, date, weekday):
         """
         Bir tarihten sonraki belirli bir günün tarihini döndürür (örneğin, bir sonraki Pazartesi).
 
@@ -191,23 +679,23 @@ class CemirUtils:
             days_ahead += 7
         return d + timedelta(days=days_ahead)
 
-    def format_date_in_locale(self, date, locale='en', format='full'):
+    @staticmethod
+    def time_todatetime(date):
         """
-        Bir tarihi istenilen dilde ve formatta yazdırır.
-
+        Bir tarihi datetime türüne çevirir
 
         Args:
             date (str): Tarih (YYYY-MM-DD formatında).
-            locale (str): Dil kodu (varsayılan 'en').
-            format (str): Tarih formatı (varsayılan 'full').
 
+        * Örnek:
+        >>> utils =CemirUtils()
+        >>> print(utils.time_todatetime("2024-05-10"))
 
         Returns:
             str: Formatlanmış tarih.
         """
-        date_format = "%Y-%m-%d"
-        d = datetime.strptime(date, date_format)
-        return d
+
+        return datetime.strptime(date, "%Y-%m-%d")
 
     def time_since(self, past_date):
         """
@@ -243,7 +731,8 @@ class CemirUtils:
             'minutes': minutes,
             'seconds': seconds
         }
-    def business_days_between_dates(self, date1, date2):
+
+    def time_business_days_between_dates(self, date1, date2):
         """
         İki tarih arasındaki iş günü sayısını hesaplar.
 
@@ -263,7 +752,7 @@ class CemirUtils:
         business_days = sum(1 for day in day_generator if day.weekday() < 5)
         return business_days
 
-    def replace_multiple(self, text, replacements):
+    def str_replace_multiple(self, text, replacements):
         """
         Verilen metinde çoklu değiştirme işlemi yapar.
 
@@ -272,6 +761,10 @@ class CemirUtils:
             text (str): Değiştirilecek metin.
             replacements (dict): Değiştirilecek değer çiftleri (anahtar: eski değer, değer: yeni değer).
 
+        Örnek:
+
+        >>> utils = CemirUtils()
+        >>> print(utils.str_replace_multiple("asd muslu asd", {"asd": "muslu", "muslu": "emir"}))
 
         Returns:
             str: Değiştirilmiş metin.
@@ -280,7 +773,7 @@ class CemirUtils:
             text = text.replace(old, new)
         return text
 
-    def replace_with_last(self, text, values):
+    def str_replace_with_last(self, text, values):
         """
         Verilen metinde belirtilen tüm değerleri son değer ile değiştirir.
 
@@ -288,6 +781,11 @@ class CemirUtils:
         Args:
             text (str): Değiştirilecek metin.
             values (tuple): Değiştirilecek değerler.
+
+        Örnek:
+
+        >>> utils = CemirUtils()
+        >>> print(utils.str_replace_with_last("asd muslu asd", ("muslu", "emir"}))
 
 
         Returns:
@@ -300,7 +798,7 @@ class CemirUtils:
             text = text.replace(value, last_value)
         return text
 
-    def multiply_by_scalar(self, scalar):
+    def list_multiply_by_scalar(self, scalar):
         """
         Veri listesindeki her bir elemanı verilen skaler değer ile çarpar.
 
@@ -312,7 +810,7 @@ class CemirUtils:
 
         Örnek:
         >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.multiply_by_scalar(2)
+        >>> ceml.list_multiply_by_scalar(2)
         [2, 4, 6]
         """
         if isinstance(self.data, list):
@@ -320,7 +818,7 @@ class CemirUtils:
         else:
             raise TypeError("Veri tipi liste olmalıdır.")
 
-    def get_frequency(self, value):
+    def list_get_frequency(self, value):
         """
         Verilen değerin veri listesinde kaç kez geçtiğini sayar.
 
@@ -332,7 +830,7 @@ class CemirUtils:
 
         Örnek:
         >>> ceml = CemirUtils([1, 2, 2, 3])
-        >>> ceml.get_frequency(2)
+        >>> ceml.list_get_frequency(2)
         2
         """
         if isinstance(self.data, list):
@@ -340,7 +838,7 @@ class CemirUtils:
         else:
             raise TypeError("Veri tipi liste olmalıdır.")
 
-    def reverse_list(self):
+    def list_reverse(self):
         """
         Veri listesini tersine çevirir.
 
@@ -349,7 +847,7 @@ class CemirUtils:
 
         Örnek:
         >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.reverse_list()
+        >>> ceml.list_reverse()
         [3, 2, 1]
         """
         if isinstance(self.data, list):
@@ -357,7 +855,7 @@ class CemirUtils:
         else:
             raise TypeError("Veri tipi liste olmalıdır.")
 
-    def get_max_value(self):
+    def list_get_max_value(self):
         """
         Veri listesindeki en büyük değeri döner.
 
@@ -366,7 +864,7 @@ class CemirUtils:
 
         Örnek:
         >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.get_max_value()
+        >>> ceml.list_get_max_value()
         3
         """
         if isinstance(self.data, list):
@@ -374,7 +872,7 @@ class CemirUtils:
         else:
             raise TypeError("Veri tipi liste olmalıdır.")
 
-    def get_min_value(self):
+    def list_get_min_value(self):
         """
         Veri listesindeki en küçük değeri döner.
 
@@ -383,7 +881,7 @@ class CemirUtils:
 
         Örnek:
         >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.get_min_value()
+        >>> ceml.list_get_min_value()
         1
         """
         if isinstance(self.data, list):
@@ -391,34 +889,33 @@ class CemirUtils:
         else:
             raise TypeError("Veri tipi liste olmalıdır.")
 
-    def filter_by_key(self, key, value):
+    def dict_filter_by_key(self, key):
         """
-        Sözlükte veya sözlüklerin bulunduğu listede belirtilen anahtar ve değere sahip elemanları filtreler.
+        Sözlükte veya sözlüklerin bulunduğu listede belirtilen anahtara sahip elemanları filtreler.
 
         Parametreler:
         key: Filtreleme yapılacak anahtar.
-        value: Filtreleme yapılacak değer.
 
         Dönüş:
         dict, list: Filtrelenmiş veri.
 
         Örnek:
         >>> cemd = CemirUtils({'a': 1, 'b': 2, 'c': 3})
-        >>> cemd.filter_by_key('b', 2)
+        >>> cemd.dict_filter_by_key('b')
         {'b': 2}
 
         >>> ceml = CemirUtils([{'a': 1}, {'b': 2}, {'a': 3}])
-        >>> ceml.filter_by_key('a', 1)
-        [{'a': 1}]
+        >>> ceml.dict_filter_by_key('a')
+        [{'a': 1}, {'a': 3}]
         """
         if isinstance(self.data, dict):
-            return {k: v for k, v in self.data.items() if k == key and v == value}
+            return {k: v for k, v in self.data.items() if k == key}
         elif isinstance(self.data, list):
-            return [item for item in self.data if isinstance(item, dict) and item.get(key) == value]
+            return [item for item in self.data if isinstance(item, dict) and key in item]
         else:
             raise TypeError("Veri tipi sözlük veya sözlük listesi olmalıdır.")
 
-    def get_keys(self):
+    def dict_get_keys(self):
         """
         Sözlükteki veya sözlüklerin bulunduğu listedeki anahtarları döner.
 
@@ -427,11 +924,11 @@ class CemirUtils:
 
         Örnek:
         >>> cemd = CemirUtils({'a': 1, 'b': 2, 'c': 3})
-        >>> cemd.get_keys()
+        >>> cemd.dict_get_keys()
         ['a', 'b', 'c']
 
         >>> ceml = CemirUtils([{'a': 1}, {'b': 2}, {'a': 3}])
-        >>> ceml.get_keys()
+        >>> ceml.dict_get_keys()
         ['a', 'b', 'a']
         """
         if isinstance(self.data, dict):
@@ -441,24 +938,7 @@ class CemirUtils:
         else:
             raise TypeError("Veri tipi sözlük veya sözlük listesi olmalıdır.")
 
-    def flatten_list(self):
-        """
-        Çok katmanlı listeyi tek katmana indirger.
-
-        Dönüş:
-        list: Tek katmanlı liste.
-
-        Örnek:
-        >>> ceml = CemirUtils([[1, 2], [3, 4], [5]])
-        >>> ceml.flatten_list()
-        [1, 2, 3, 4, 5]
-        """
-        if isinstance(self.data, list) and all(isinstance(i, list) for i in self.data):
-            return [item for sublist in self.data for item in sublist]
-        else:
-            raise TypeError("Veri tipi çok katmanlı liste olmalıdır.")
-
-    def merge_dicts(self, *dicts):
+    def dict_merge(self, *dicts):
         """
         Verilen sözlükleri birleştirir.
 
@@ -469,8 +949,8 @@ class CemirUtils:
         dict: Birleştirilmiş sözlük.
 
         Örnek:
-        >>> ceml = CemirUtils({})
-        >>> ceml.merge_dicts({'a': 1}, {'b': 2})
+        >>> cemd = CemirUtils({})
+        >>> cemd.dict_merge({'a': 1}, {'b': 2})
         {'a': 1, 'b': 2}
         """
         if all(isinstance(d, dict) for d in dicts):
@@ -481,7 +961,7 @@ class CemirUtils:
         else:
             raise TypeError("Tüm parametreler sözlük olmalıdır.")
 
-    def filter_greater_than(self, threshold):
+    def list_filter_greater_than(self, threshold):
         """
         Belirtilen eşik değerinden büyük olan öğeleri filtreler.
 
@@ -493,12 +973,12 @@ class CemirUtils:
 
         Örnek:
         >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.filter_greater_than(5)
+        >>> cem.list_filter_greater_than(5)
         [9, 6]
         """
         return [x for x in self.data if x > threshold]
 
-    def filter_less_than(self, threshold):
+    def list_filter_less_than(self, threshold):
         """
         Belirtilen eşik değerinden küçük olan öğeleri filtreler.
 
@@ -510,12 +990,29 @@ class CemirUtils:
 
         Örnek:
         >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.filter_less_than(4)
+        >>> cem.list_filter_less_than(4)
         [3, 1, 1, 2, 3]
         """
         return [x for x in self.data if x < threshold]
 
-    def sum_values(self):
+    def list_flatten(self):
+        """
+        Çok katmanlı listeyi tek katmana indirger.
+
+        Dönüş:
+        list: Tek katmanlı liste.
+
+        Örnek:
+        >>> ceml = CemirUtils([[1, 2], [3, 4], [5]])
+        >>> ceml.list_flatten()
+        [1, 2, 3, 4, 5]
+        """
+        if isinstance(self.data, list) and all(isinstance(i, list) for i in self.data):
+            return [item for sublist in self.data for item in sublist]
+        else:
+            raise TypeError("Veri tipi çok katmanlı liste olmalıdır.")
+
+    def list_sum_values(self):
         """
         Listedeki tüm sayısal değerlerin toplamını hesaplar.
 
@@ -524,12 +1021,12 @@ class CemirUtils:
 
         Örnek:
         >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.sum_values()
+        >>> cem.list_sum_values()
         44
         """
         return sum(self.data)
 
-    def average(self):
+    def list_average(self):
         """
         Listedeki sayısal değerlerin ortalamasını hesaplar.
 
@@ -538,12 +1035,12 @@ class CemirUtils:
 
         Örnek:
         >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.average()
+        >>> cem.list_average()
         4.0
         """
         return sum(self.data) / len(self.data) if self.data else 0
 
-    def head(self, n=5):
+    def list_head(self, n=5):
         """
         Listenin ilk n elemanını döndürür.
         Args:
@@ -553,7 +1050,7 @@ class CemirUtils:
         """
         return self.data[:n]
 
-    def tail(self, n=5):
+    def list_tail(self, n=5):
         """
         Listenin son n elemanını döndürür.
         Args:
@@ -563,7 +1060,7 @@ class CemirUtils:
         """
         return self.data[-n:]
 
-    def main(self, n=5):
+    def list_main(self, n=5):
         """
         Listenin ortadaki elemanlarını döndürür.
         Eğer listenin uzunluğu 2n veya daha küçükse tüm listeyi döndürür.
@@ -576,7 +1073,7 @@ class CemirUtils:
             return self.data
         return self.data[n:-n]
 
-    def unique_values(self):
+    def list_unique_values(self):
         """
         Listenin benzersiz elemanlarını döndürür.
         Returns:
@@ -584,7 +1081,7 @@ class CemirUtils:
         """
         return list(set(self.data))
 
-    def sort_asc(self):
+    def list_sort_asc(self):
         """
         Listeyi artan sırada sıralar.
         Returns:
@@ -592,154 +1089,13 @@ class CemirUtils:
         """
         return sorted(self.data)
 
-    def sort_desc(self):
+    def list_sort_desc(self):
         """
         Listeyi azalan sırada sıralar.
         Returns:
             list: Azalan sırada sıralanmış liste.
         """
         return sorted(self.data, reverse=True)
-
-    def http_get(self, url, params=None, headers=None, verify_ssl=True):
-        """
-        GET isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        params (dict): URL parametreleri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None:
-            headers = {}
-
-        if params:
-            url += '?' + parse.urlencode(params)
-
-        req = request.Request(url, headers=headers)
-        response = request.urlopen(req, timeout=10,
-                                   context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_post(self, url, data=None, headers=None, verify_ssl=True):
-        """
-        POST isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        data (dict): Gönderilecek veri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None:
-            headers = {}
-
-        if data:
-            data = parse.urlencode(data).encode('utf-8')
-
-        req = request.Request(url, data=data, headers=headers, method='POST')
-        response = request.urlopen(req, timeout=10,
-                                   context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_put(self, url, data=None, headers=None, verify_ssl=True):
-        """
-        PUT isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        data (dict): Gönderilecek veri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None:
-            headers = {}
-
-        if data:
-            data = parse.urlencode(data).encode('utf-8')
-
-        req = request.Request(url, data=data, headers=headers, method='PUT')
-        response = request.urlopen(req, timeout=10,
-                                   context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_delete(self, url, headers=None, verify_ssl=True):
-        """
-        DELETE isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None:
-            headers = {}
-
-        req = request.Request(url, headers=headers, method='DELETE')
-        response = request.urlopen(req, timeout=10,
-                                   context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_patch(self, url, data=None, headers=None, verify_ssl=True):
-        """
-        PATCH isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        data (dict): Gönderilecek veri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None:
-            headers = {}
-
-        if data:
-            data = parse.urlencode(data).encode('utf-8')
-
-        req = request.Request(url, data=data, headers=headers, method='PATCH')
-        response = request.urlopen(req, timeout=10,
-                                   context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
 
     def http_server(self, port=8000, ip='127.0.0.1', ssl_cert=None, ssl_key=None, username=None, password=None, directory=None):
         class CemirUtilsHTTPRequestHandler(SimpleHTTPRequestHandler):
@@ -780,3 +1136,166 @@ class CemirUtils:
 
         print(f"Starting HTTP server on http://{ip}:{port}")
         httpd.serve_forever()
+
+    def http_send_request(self, url, method='GET', headers=None, data=None, destination=None):
+        """
+        Send an HTTP request to the given URL with the specified method, headers, and data,
+        using the default User-Agent if not provided in headers.
+        If destination is provided, download the file to the destination path.
+        """
+
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+        try:
+            req = request.Request(url, headers=headers or self.default_headers, method=method, data=data)
+            with request.urlopen(req) as response:
+                content = response.read()
+                result = {
+                    "url": url,
+                    "method": method,
+                    "headers": dict(response.headers),
+                    "content": "Binary data (PDF, image, etc.)"
+                }
+                if destination:
+                    with open(destination, 'wb') as f:
+                        f.write(content)
+                    result["saved_to"] = destination
+                return json.dumps(result, indent=4)
+        except Exception as e:
+            return f"Failed to send request to {url}, error: {str(e)}"
+
+    def http_get(self, url, params=None, headers=None, verify_ssl=True):
+        """
+        GET isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        params (dict): URL parametreleri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if params:
+            url += '?' + parse.urlencode(params)
+
+        req = request.Request(url, headers=headers)
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_post(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        POST isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if data:
+            data = parse.urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='POST')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_put(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        PUT isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if data:
+            data = parse.urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='PUT')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_delete(self, url, headers=None, verify_ssl=True):
+        """
+        DELETE isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        req = request.Request(url, headers=headers, method='DELETE')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def http_patch(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        PATCH isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if data:
+            data = parse.urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='PATCH')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
