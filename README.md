@@ -209,6 +209,7 @@ print(utils.linux_find("/", "new_file.txt"))
 print(utils.linux_grep("a", "new_file.txt"))
 ```
 
+## HTTP istek örnekleri
 
 ```python
 from cemirutils import CemirUtils
@@ -240,6 +241,12 @@ patch_data = {"title": "foo"}
 patch_response = cemir_utils.http_patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data, verify_ssl=True)
 print("PATCH Response:", patch_response)
 
+```
+
+## List ve Dict işlemleri
+
+```python
+from cemirutils import CemirUtils
 
 data_list = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
 cem = CemirUtils(data_list)
@@ -254,20 +261,6 @@ print(cem.list_filter_greater_than(5))  # 5'ten büyük değerleri yazdırır: [
 print(cem.list_filter_less_than(4))  # 4'ten küçük değerleri yazdırır: [3, 1, 1, 2, 3]
 print(cem.list_sum_values())  # Değerlerin toplamını yazdırır: 44
 print(cem.list_average())  # Değerlerin ortalamasını yazdırır: 4.0
-
-
-## Zaman işlemleri
-utils = CemirUtils(None)
-print(utils.time_days_between_dates("2024-05-01", "2024-05-25"))  # 24
-print(utils.time_hours_minutes_seconds_between_times("08:30:00", "15:45:30"))  # (7, 15, 30)
-print(utils.time_until_date("2024-05-27 23:59:59"))  # Kalan gün, saat, dakika, saniye
-print(utils.time_add_days_and_format("2024-05-01", 30))  # "2024-05-31 (Cuma)"
-print(utils.time_is_weekend("2024-05-25"))  # True
-print(utils.time_is_leap_year(2024))  # True
-print(utils.time_days_in_month(2024, 2))  # 29
-print(utils.time_next_weekday("2024-05-25", 0))  # 2024-05-27
-print(utils.time_since("2022-01-01 00:00:00"))  # (2, 4, 24, 14, 30, 15)
-print(utils.time_business_days_between_dates("2024-05-01", "2024-05-25"))  # 17
 
 
 ceml = CemirUtils([[1, 2], [3, 4], [5]])
@@ -297,6 +290,25 @@ cemd = CemirUtils(data)
 print(cemd.dict_get_keys())
 print(cemd.dict_filter_by_key('name'))
 print(cemd.dict_merge({'a': 1}, {'b': 2}))
+```
+
+## Zaman işlemleri
+
+```python
+from cemirutils import CemirUtils
+
+utils = CemirUtils(None)
+print(utils.time_days_between_dates("2024-05-01", "2024-05-25"))  # 24
+print(utils.time_hours_minutes_seconds_between_times("08:30:00", "15:45:30"))  # (7, 15, 30)
+print(utils.time_until_date("2024-05-27 23:59:59"))  # Kalan gün, saat, dakika, saniye
+print(utils.time_add_days_and_format("2024-05-01", 30))  # "2024-05-31 (Cuma)"
+print(utils.time_is_weekend("2024-05-25"))  # True
+print(utils.time_is_leap_year(2024))  # True
+print(utils.time_days_in_month(2024, 2))  # 29
+print(utils.time_next_weekday("2024-05-25", 0))  # 2024-05-27
+print(utils.time_since("2022-01-01 00:00:00"))  # (2, 4, 24, 14, 30, 15)
+print(utils.time_business_days_between_dates("2024-05-01", "2024-05-25"))  # 17
+
 
 ````
 
