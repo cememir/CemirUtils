@@ -31,9 +31,9 @@ pip freeze | grep cemir
 ## Tetiklenen uygun koşulların satır numaralarını ve koşul ifadelerini göster
 
 ```python
-from cemirutils import CemirUtilsErrors
+from cemirutils import CemirUtilsConditions
 
-cemir_utils = CemirUtilsErrors()
+cemir_utils = CemirUtilsConditions()
 
 @cemir_utils.condition_collector
 def test_function(x, y, z):

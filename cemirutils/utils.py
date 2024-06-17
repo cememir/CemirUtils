@@ -15,7 +15,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
 
 
-class CemirUtilsErrors:
+class CemirUtilsConditions:
     def __init__(self):
         self.conditions = []
 
