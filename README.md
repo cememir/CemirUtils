@@ -28,7 +28,64 @@ pip freeze | grep cemir
 
 # Kullanım Örnekleri
 
+## Dekoratörler
+
+```python
+import time
+
+from cemirutils import CemirUtilsDecorators
+
+
+@CemirUtilsDecorators.timeit
+@CemirUtilsDecorators.log
+def example_function(x, y):
+    time.sleep(1)
+    return x + y
+
+
+@CemirUtilsDecorators.retry(retries=5, delay=2)
+def may_fail_function():
+    if time.time() % 2 < 1:
+        raise ValueError("Random failure!")
+    return "Success"
+
+
+@CemirUtilsDecorators.cache
+def slow_function(x):
+    time.sleep(2)  # Zaman alacak bir işlem yapalım.
+    return x * x
+
+
+# Örnek fonksiyonları çalıştırma
+example_function(3, 5)
+may_fail_function()
+print(slow_function(4))
+print(slow_function(4))  # Bu sefer önbellekten sonuç dönecek
+
+# Output:
+# Calling function 'example_function' with arguments (3, 5) and keyword arguments {}
+
+# Function 'example_function' returned 8
+
+# Function 'example_function' took 1.0090 seconds
+
+# Attempt 1 failed: Random failure!
+# Attempt 2 failed: Random failure!
+# Attempt 3 failed: Random failure!
+# Attempt 4 failed: Random failure!
+# Attempt 5 failed: Random failure!
+# Function 'may_fail_function' failed after 5 attempts
+
+# 16
+
+# Returning cached result for slow_function with args (4,) and kwargs {}
+
+# 16
+```
+
+
 ## Email göndermek, dosya eklemek
+
 
 ```python
 from cemirutils import CemirUtilsEmail

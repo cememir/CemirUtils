@@ -1,18 +1,30 @@
-from cemirutils import CemirUtilsEmail
+import time
 
-# Kullanım
-email_util = CemirUtilsEmail(
-    smtp_host="smtp.gmail.com",
-    smtp_port=465,
-    smtp_user="musluyuksektepe@gmail.com",
-    smtp_pass="nopass",
-    smtp_ssl=True
-)
+from cemirutils import CemirUtilsDecorators
 
-email_util.send_email(
-    to_email="cememir2017@gmail.com",
-    subject="Test Subject",
-    body_html="<html><body><h1>This is a test email in HTML.</h1></body></html>",
-    attachments=["2024.pdf", "not_found.log"],
-    zip_files=False  # Dosyaları zipleyip eklemek için
-)
+
+@CemirUtilsDecorators.timeit
+@CemirUtilsDecorators.log
+def example_function(x, y):
+    time.sleep(1)
+    return x + y
+
+
+@CemirUtilsDecorators.retry(retries=5, delay=2)
+def may_fail_function():
+    if time.time() % 2 < 1:
+        raise ValueError("Random failure!")
+    return "Success"
+
+
+@CemirUtilsDecorators.cache
+def slow_function(x):
+    time.sleep(2)  # Zaman alacak bir işlem yapalım.
+    return x * x
+
+
+# Örnek fonksiyonları çalıştırma
+example_function(3, 5)
+may_fail_function()
+print(slow_function(4))
+print(slow_function(4))  # Bu sefer önbellekten sonuç dönecek

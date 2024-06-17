@@ -1,5 +1,3 @@
-ver = "1.0.4"
-
 import base64
 import csv
 import inspect
@@ -11,6 +9,7 @@ import sqlite3
 import ssl
 import subprocess
 import sys
+import time
 import urllib.request
 import zipfile
 from calendar import monthrange
@@ -19,8 +18,71 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from functools import wraps
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
+
+ver = "1.1.2"
+
+
+class CemirUtilsDecorators:
+    @staticmethod
+    def timeit(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print(f"Function '{func.__name__}' took {elapsed_time:.4f} seconds")
+            return result
+
+        return wrapper
+
+    @staticmethod
+    def log(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            print(f"Calling function '{func.__name__}' with arguments {args} and keyword arguments {kwargs}")
+            result = func(*args, **kwargs)
+            print(f"Function '{func.__name__}' returned {result}")
+            return result
+
+        return wrapper
+
+    @staticmethod
+    def retry(retries=3, delay=1):
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                for attempt in range(1, retries + 1):
+                    try:
+                        return func(*args, **kwargs)
+                    except Exception as e:
+                        print(f"Attempt {attempt} failed: {e}")
+                        if attempt < retries:
+                            time.sleep(delay)
+                print(f"Function '{func.__name__}' failed after {retries} attempts")
+
+            return wrapper
+
+        return decorator
+
+    @staticmethod
+    def cache(func):
+        cache_data = {}
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            key = (args, frozenset(kwargs.items()))
+            if key in cache_data:
+                print(f"Returning cached result for {func.__name__} with args {args} and kwargs {kwargs}")
+                return cache_data[key]
+            result = func(*args, **kwargs)
+            cache_data[key] = result
+            return result
+
+        return wrapper
 
 
 class CemirUtilsEmail:
