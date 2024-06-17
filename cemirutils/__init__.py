@@ -1,6 +1,11 @@
-from .utils import CemirUtils
+from .utils import *
 
-__all__ = ['CemirUtils']
+__all__ = ['CemirUtils', 'CemirUtilsConditions', 'CemirPostgreSQL', 'IPGeolocation', 'Dict2Dot']
 
-author = 'Cem Emir / Muslu Yüksektepe'
-author_email = 'musluyuksektepe@gmail.com'
+author = 'Cem Emir Yüksektepe'
+author_ = 'Muslu Yüksektepe'
+
+author_email = 'cememir2017@gmail.com'
+author_email_ = 'musluyuksektepe@gmail.com'
+
+years = 2024

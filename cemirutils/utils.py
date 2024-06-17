@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
 
+ver = "1.0.4"
 
 class CemirUtilsConditions:
     def __init__(self):
