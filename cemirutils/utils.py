@@ -1,8 +1,12 @@
+ver = "1.0.4"
+
 import base64
 import csv
 import inspect
 import json
+import logging
 import os
+import smtplib
 import sqlite3
 import ssl
 import subprocess
@@ -11,10 +15,132 @@ import urllib.request
 import zipfile
 from calendar import monthrange
 from datetime import datetime, timedelta
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
 
-ver = "1.0.4"
+
+class CemirUtilsEmail:
+    def __init__(self, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_ssl=True):
+        self.smtp_host = smtp_host
+        self.smtp_port = smtp_port
+        self.smtp_user = smtp_user
+        self.smtp_pass = smtp_pass
+        self.smtp_ssl = smtp_ssl
+
+        # Set up logging
+        logging.basicConfig(filename='email_errors.log', level=logging.ERROR)
+
+    def html_to_plain(self, html):
+        # Basit string işleme ile HTML'yi plain text'e çevir
+        plain_text = html.replace('<br>', '\n').replace('<br/>', '\n').replace('</p>', '\n\n').replace('<p>', '').replace('<h1>', '\n\n').replace('</h1>', '\n\n')
+        plain_text = plain_text.replace('<h2>', '\n\n').replace('</h2>', '\n\n').replace('<h3>', '\n\n').replace('</h3>', '\n\n')
+        plain_text = plain_text.replace('<strong>', '').replace('</strong>', '').replace('<em>', '').replace('</em>', '')
+        plain_text = plain_text.replace('<ul>', '\n').replace('</ul>', '').replace('<li>', '\n- ').replace('</li>', '').replace('<div>', '\n').replace('</div>', '\n')
+        plain_text = plain_text.replace('<html>', '').replace('</html>', '').replace('<body>', '').replace('</body>', '')
+        plain_text = plain_text.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        return ''.join(plain_text.splitlines())  # Satır sonlarını temizle
+
+    def zip_attachments(self, attachments):
+        zip_filename = 'attachments.zip'
+        with zipfile.ZipFile(zip_filename, 'w') as zipf:
+            for file_path in attachments:
+                if os.path.isfile(file_path):
+                    zipf.write(file_path, os.path.basename(file_path))
+        return zip_filename
+
+    def send_email(self, to_email, subject, body_html, attachments=None, zip_files=False):
+        try:
+            # Check if all attachment files exist
+            if attachments:
+                missing_files = [file_path for file_path in attachments if not os.path.isfile(file_path)]
+                if missing_files:
+                    error_message = f"{datetime.now()}: Missing attachment files: {', '.join(missing_files)}"
+                    logging.error(error_message)
+                    print(error_message)
+                    return  # Exit without sending the email
+
+            # Set up the server
+            if self.smtp_ssl:
+                context = ssl.create_default_context()
+                server = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=context)
+            else:
+                server = smtplib.SMTP(self.smtp_host, self.smtp_port)
+                server.starttls()
+
+            # Login to the server
+            server.login(self.smtp_user, self.smtp_pass)
+
+            # Create the email
+            msg = MIMEMultipart('alternative')
+            msg['From'] = self.smtp_user
+            msg['To'] = to_email
+            msg['Subject'] = subject
+
+            # Convert HTML to plain text
+            body_plain = self.html_to_plain(body_html)
+
+            # Attach plain text and HTML parts
+            part1 = MIMEText(body_plain, 'plain')
+            part2 = MIMEText(body_html, 'html')
+            msg.attach(part1)
+            msg.attach(part2)
+
+            # Handle attachments
+            if attachments:
+                if zip_files:
+                    zip_filename = self.zip_attachments(attachments)
+                    with open(zip_filename, 'rb') as f:
+                        part = MIMEBase('application', 'octet-stream')
+                        part.set_payload(f.read())
+                    encoders.encode_base64(part)
+                    part.add_header(
+                        'Content-Disposition',
+                        f'attachment; filename={zip_filename}',
+                    )
+                    msg.attach(part)
+                    os.remove(zip_filename)  # Temp zip dosyasını sil
+                else:
+                    for file_path in attachments:
+                        if os.path.isfile(file_path):
+                            with open(file_path, 'rb') as f:
+                                part = MIMEBase('application', 'octet-stream')
+                                part.set_payload(f.read())
+                                encoders.encode_base64(part)
+
+                            part.add_header(
+                                'Content-Disposition',
+                                f'attachment; filename={os.path.basename(file_path)}',
+                            )
+                            msg.attach(part)
+
+            # Send the email
+            server.sendmail(self.smtp_user, to_email, msg.as_string())
+
+            # Close the server
+            server.quit()
+
+            print("Email sent successfully")
+        except smtplib.SMTPAuthenticationError:
+            error_message = "Error: The server didn't accept the username/password combination."
+            logging.error(error_message)
+            print(error_message)
+        except smtplib.SMTPConnectError:
+            error_message = "Error: Unable to establish a connection to the email server."
+            logging.error(error_message)
+            print(error_message)
+        except smtplib.SMTPServerDisconnected:
+            error_message = "Error: Server unexpectedly disconnected."
+            logging.error(error_message)
+            print(error_message)
+        except Exception as e:
+            error_message = f"An error occurred: {e}"
+            logging.error(error_message)
+            print(error_message)
+
 
 class CemirUtilsConditions:
     def __init__(self):

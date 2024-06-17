@@ -1,65 +1,18 @@
-from cemirutils import CemirUtilsConditions
+from cemirutils import CemirUtilsEmail
 
-cemir_utils = CemirUtilsConditions()
+# Kullanım
+email_util = CemirUtilsEmail(
+    smtp_host="smtp.gmail.com",
+    smtp_port=465,
+    smtp_user="musluyuksektepe@gmail.com",
+    smtp_pass="nopass",
+    smtp_ssl=True
+)
 
-@cemir_utils.condition_collector
-def test_function(x, y, z):
-    if x > 15:
-        # print("x is greater than 15")
-        pass
-    elif x < 15 and y > 10:
-        # print("x is less than 15 and y is greater than 10")
-        pass
-    else:
-        # print("x is not within the expected range or y is not greater than 10")
-        pass
-
-    if y == 20:
-        # print("y is exactly 20")
-        pass
-    elif y >= 15:
-        # print("y is greater than or equal to 15")
-        pass
-    else:
-        # print("y is less than 15")
-        pass
-
-    if z == "hello":
-        # print("z is 'hello'")
-        pass
-    elif z == "world":
-        # print("z is 'world'")
-        pass
-    else:
-        # print("z is something else")
-        pass
-
-    if x == 10:
-        # print("x is 10")
-        pass
-    elif x >= 10:
-        # print("x is greater than or equal to 10")
-        pass
-    else:
-        # print("x is less than 10")
-        pass
-
-    if y % 2 == 0:
-        # print("y is even")
-        pass
-    else:
-        # print("y is odd")
-        pass
-
-    if z.startswith("hq"):
-        # print("z starts with 'h'")
-        pass
-    elif z.startswith("w"):
-        # print("z starts with 'w'")
-        pass
-    else:
-        # print("z starts with another letter")
-        pass
-
-
-test_function(10, 20, "hello")
+email_util.send_email(
+    to_email="cememir2017@gmail.com",
+    subject="Test Subject",
+    body_html="<html><body><h1>This is a test email in HTML.</h1></body></html>",
+    attachments=["2024.pdf", "not_found.log"],
+    zip_files=False  # Dosyaları zipleyip eklemek için
+)

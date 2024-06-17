@@ -1,6 +1,6 @@
 from .utils import *
 
-__all__ = ['CemirUtils', 'CemirUtilsConditions', 'CemirPostgreSQL', 'IPGeolocation', 'Dict2Dot']
+__all__ = ['CemirUtils', 'CemirUtilsConditions', 'CemirPostgreSQL', 'IPGeolocation', 'Dict2Dot', 'CemirUtilsEmail']
 
 author = 'Cem Emir Yüksektepe'
 author_ = 'Muslu Yüksektepe'
