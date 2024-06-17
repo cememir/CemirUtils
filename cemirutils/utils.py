@@ -1,5 +1,6 @@
 import base64
 import csv
+import functools
 import inspect
 import json
 import logging
@@ -82,6 +83,26 @@ class CemirUtilsDecorators:
             cache_data[key] = result
             return result
 
+        return wrapper
+
+    @staticmethod
+    def deprecate(message):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                print(f"WARNING: {func.__name__} is deprecated. {message}")
+                return func(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    @staticmethod
+    def debug(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            print(f"DEBUG: Calling function '{func.__name__}' with arguments {args} and keyword arguments {kwargs}")
+            result = func(*args, **kwargs)
+            print(f"DEBUG: Function '{func.__name__}' returned {result}")
+            return result
         return wrapper
 
 
