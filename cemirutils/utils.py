@@ -105,6 +105,30 @@ class CemirUtilsDecorators:
             return result
         return wrapper
 
+    @staticmethod
+    def cache_with_expiry(expiry_time):
+        cache_data = {}
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                key = (args, frozenset(kwargs.items()))
+                if key in cache_data:
+                    if time.time() - cache_data[key]["timestamp"] < expiry_time:
+                        print(f"Returning cached result for {func.__name__} with args {args} and kwargs {kwargs}")
+                        return cache_data[key]["result"]
+                result = func(*args, **kwargs)
+                cache_data[key] = {"result": result, "timestamp": time.time()}
+                return result
+            return wrapper
+        return decorator
+
+    @staticmethod
+    def before_after(func):
+        def wrapper(*args, **kwargs):
+            print("Starting transaction")
+            result = func(*args, **kwargs)
+            print("Committing transaction")
+            return result
+        return wrapper
 
 class CemirUtilsEmail:
     def __init__(self, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_ssl=True):

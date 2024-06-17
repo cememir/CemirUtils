@@ -32,16 +32,22 @@ pip freeze | grep cemir
 
 ```python
 import time
+from datetime import datetime
 
 from cemirutils import CemirUtilsDecorators
 
-
 @CemirUtilsDecorators.timeit
 @CemirUtilsDecorators.log
-def example_function(x, y):
+def timeit_log(x, y):
     time.sleep(1)
     return x + y
 
+timeit_log(3, 5)
+
+# Output: 
+# Calling function 'timeit_log' with arguments (3, 5) and keyword arguments {}
+# Function 'timeit_log' returned 8
+# Function 'timeit_log' took 1.0018 seconds
 
 @CemirUtilsDecorators.retry(retries=5, delay=2)
 def may_fail_function():
@@ -49,46 +55,9 @@ def may_fail_function():
         raise ValueError("Random failure!")
     return "Success"
 
-
-@CemirUtilsDecorators.cache
-def slow_function(x):
-    time.sleep(2)  # Zaman alacak bir işlem yapalım.
-    return x * x
-
-@CemirUtilsDecorators.deprecate("Please use new_function instead.")
-def old_function(x, y):
-    return x + y
-
-@CemirUtilsDecorators.debug
-def add_numbers(a, b):
-    return a + b
-
-
-# Örnek fonksiyonları çalıştırma
-old_function(3, 5)
-
-add_numbers(3, 5)
-
-example_function(3, 5)
-
 may_fail_function()
 
-print(slow_function(4))
-print(slow_function(4))  # Bu sefer önbellekten sonuç dönecek
-
-# Output:
-
-# WARNING: old_function is deprecated. Please use new_function instead.
-
-# DEBUG: Calling function 'add_numbers' with arguments (3, 5) and keyword arguments {}
-# DEBUG: Function 'add_numbers' returned 8
-
-# Calling function 'example_function' with arguments (3, 5) and keyword arguments {}
-
-# Function 'example_function' returned 8
-
-# Function 'example_function' took 1.0090 seconds
-
+# Output: 
 # Attempt 1 failed: Random failure!
 # Attempt 2 failed: Random failure!
 # Attempt 3 failed: Random failure!
@@ -96,11 +65,64 @@ print(slow_function(4))  # Bu sefer önbellekten sonuç dönecek
 # Attempt 5 failed: Random failure!
 # Function 'may_fail_function' failed after 5 attempts
 
-# 16
+@CemirUtilsDecorators.cache
+def slow_function(x):
+    time.sleep(2)  # Zaman alacak bir işlem yapalım.
+    return x * x
 
+print(slow_function(4))
+print(slow_function(4))  # Bu sefer önbellekten sonuç dönecek
+
+# Output: 
+# 16
 # Returning cached result for slow_function with args (4,) and kwargs {}
-
 # 16
+
+@CemirUtilsDecorators.cache_with_expiry(expiry_time=5)
+def cached_function(x):
+    time.sleep(3)  # Örnek olarak zaman alacak bir işlem yapalım.
+    return x * x
+
+print(datetime.now(), cached_function(4))
+time.sleep(1)
+print(datetime.now(), cached_function(4))  # Süre dolmuş, tekrar hesaplanacak
+
+# Output: 
+# 2024-06-17 13:02:29.906200 16
+# Returning cached result for cached_function with args (4,) and kwargs {}
+# 2024-06-17 13:02:33.920453 16
+
+@CemirUtilsDecorators.deprecate("Please use new_function instead.")
+def old_function(x, y):
+    return x + y
+
+old_function(3, 5)
+
+# Output: 
+# WARNING: old_function is deprecated. Please use new_function instead.
+
+@CemirUtilsDecorators.debug
+def add_numbers(a, b):
+    return a + b
+
+add_numbers(3, 5)
+
+# Output: 
+# DEBUG: Calling function 'add_numbers' with arguments (3, 5) and keyword arguments {}
+# DEBUG: Function 'add_numbers' returned 8
+
+@CemirUtilsDecorators.before_after
+def test_beforeafter(data):
+    print(f"1 Performing database operation with data: {data}")
+    return "2 Success"
+
+print(test_beforeafter("Muslu Y."))
+
+# Output: 
+# Starting transaction
+# 1 Performing database operation with data: Muslu Y.
+# Committing transaction
+# 2 Success
 ```
 
 
@@ -128,6 +150,7 @@ email_util.send_email(
 )
 
 ```
+
 
 ## Tetiklenen uygun koşulların satır numaralarını ve koşul ifadelerini göster
 
