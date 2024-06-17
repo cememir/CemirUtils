@@ -176,11 +176,23 @@ except RuntimeError as e:
 # 2024-06-17 13:19:46.281105 {'status': 'ok'}
 # 2024-06-17 13:19:46.281105 {'status': 'ok'}
 # Rate limit exceeded
+
+
+utils = CemirUtilsDecorators()
+@utils.webhook_request(url="https://jsonplaceholder.typicode.com/posts", headers={"x-sent-by": "CemirUtils", "user-agent": "CemirUtils"})
+def send_webhook():
+    return {'message': 'Webhook request'}
+print(send_webhook())
+
+@CemirUtilsDecorators.webhook_request(url="https://jsonplaceholder.typicode.com/posts", headers={"x-sent-by": "CemirUtils", "user-agent": "CemirUtils"})
+def send_webhook():
+    return {'message': 'Webhook request'}
+print(send_webhook())
+
 ```
 
 
 ## Email göndermek, dosya eklemek
-
 
 ```python
 from cemirutils import CemirUtilsEmail

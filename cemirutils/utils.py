@@ -21,13 +21,39 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import wraps
+from http.client import HTTPSConnection
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request, parse
+from urllib.parse import urlparse
 
-ver = "1.1.2"
+ver = "2.1.1"
 
 
 class CemirUtilsDecorators:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def webhook_request(url, headers=None):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                parsed_url = urlparse(url)
+                conn = HTTPSConnection(parsed_url.netloc)
+                default_headers = {'Content-type': 'application/json'}
+                if headers:
+                    default_headers.update(headers)
+                payload = json.dumps(func(*args, **kwargs))
+                conn.request('POST', parsed_url.path, body=payload, headers=default_headers)
+                response = conn.getresponse()
+                response_data = response.read().decode()
+                # print(response_data)
+                return json.loads(response_data)
+
+            return wrapper
+
+        return decorator
+
     @staticmethod
     def timeit(func):
         @wraps(func)
