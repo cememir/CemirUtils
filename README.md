@@ -31,6 +31,29 @@ pip freeze | grep cemir
 ## Dekoratörler
 
 ```python
+from cemirutils import CemirUtilsFunctionNotification
+
+utils = CemirUtilsFunctionNotification(
+    smtp_server="mail.makdos.com",
+    smtp_port=587,
+    smtp_user="notify@makdos.com",
+    smtp_password="nope"
+)
+
+
+@utils.notify(to_email="musluyuksektepe@gmail.com", subject="Function Called")
+def important_action():
+    return {"status": "Important action completed."}
+
+
+# SMTP sunucusu çalışıyor olmalı
+important_action()
+
+```
+
+## Dekoratörler
+
+```python
 import time
 from datetime import datetime
 
@@ -123,6 +146,36 @@ print(test_beforeafter("Muslu Y."))
 # 1 Performing database operation with data: Muslu Y.
 # Committing transaction
 # 2 Success
+
+
+#  max_call = Belirli bir zaman dilimi içinde bir fonksiyonun kaç kez çağrılabileceğini belirtir.
+#  period = Örneğin, period=10 olarak ayarlandığında, 10 saniyelik bir süre içinde max_call sayısınca (örn: 5) fonksiyon çağrısına izin verilir.
+@CemirUtilsDecorators.rate_limit(max_calls=5, period=10)
+def limited_function():
+    return {"status": "ok"}
+
+
+# Test the rate-limited function
+try:
+    print(datetime.now(), limited_function())
+    print(datetime.now(), limited_function())
+    print(datetime.now(), limited_function())
+    time.sleep(4)
+    print(datetime.now(), limited_function())  # This call should succeed
+    print(datetime.now(), limited_function())
+    print(datetime.now(), limited_function())
+    print(datetime.now(), limited_function())  # This call should raise a rate limit error
+except RuntimeError as e:
+    print(e)
+
+#Output:
+
+# 2024-06-17 13:19:42.270686 {'status': 'ok'}
+# 2024-06-17 13:19:42.270686 {'status': 'ok'}
+# 2024-06-17 13:19:42.270686 {'status': 'ok'}
+# 2024-06-17 13:19:46.281105 {'status': 'ok'}
+# 2024-06-17 13:19:46.281105 {'status': 'ok'}
+# Rate limit exceeded
 ```
 
 

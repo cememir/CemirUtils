@@ -14,7 +14,8 @@ import time
 import urllib.request
 import zipfile
 from calendar import monthrange
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -92,7 +93,9 @@ class CemirUtilsDecorators:
             def wrapper(*args, **kwargs):
                 print(f"WARNING: {func.__name__} is deprecated. {message}")
                 return func(*args, **kwargs)
+
             return wrapper
+
         return decorator
 
     @staticmethod
@@ -103,11 +106,13 @@ class CemirUtilsDecorators:
             result = func(*args, **kwargs)
             print(f"DEBUG: Function '{func.__name__}' returned {result}")
             return result
+
         return wrapper
 
     @staticmethod
     def cache_with_expiry(expiry_time):
         cache_data = {}
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 key = (args, frozenset(kwargs.items()))
@@ -118,7 +123,9 @@ class CemirUtilsDecorators:
                 result = func(*args, **kwargs)
                 cache_data[key] = {"result": result, "timestamp": time.time()}
                 return result
+
             return wrapper
+
         return decorator
 
     @staticmethod
@@ -128,7 +135,87 @@ class CemirUtilsDecorators:
             result = func(*args, **kwargs)
             print("Committing transaction")
             return result
+
         return wrapper
+
+    @staticmethod
+    def rate_limit(max_calls, period):
+        """
+        :param max_calls: Belirli bir zaman dilimi içinde bir fonksiyonun kaç kez çağrılabileceğini belirtir.
+        :param period: Örneğin, period=5 olarak ayarlandığında, 5 saniyelik bir süre içinde max_call sayısınca fonksiyon çağrısına izin verilir.
+        :return:
+        """
+        call_times = []
+
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                nonlocal call_times
+                now = time.time()
+                call_times.append(now)
+                call_times = [t for t in call_times if now - t < period]
+                if len(call_times) > max_calls:
+                    raise RuntimeError("Rate limit exceeded")
+                return func(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+
+class CemirUtilsFunctionNotification:
+    def __init__(self, smtp_server, smtp_port, smtp_user, smtp_password):
+        self.smtp_server = smtp_server
+        self.smtp_port = smtp_port
+        self.smtp_user = smtp_user
+        self.smtp_password = smtp_password
+        self.from_email = smtp_user
+
+    def notify(self, to_email, subject):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                result = func(*args, **kwargs)
+                self.send_notification(to_email, subject, func.__name__, result)
+                return result
+
+            return wrapper
+
+        return decorator
+
+    def send_notification(self, to_email, subject, func_name, result):
+        try:
+            body = f"The function {func_name} was called."
+            body += f"\n\nReturn: {result}"
+            body += f"\n\nThe subject: {subject}"
+            body += f"\n\nTime: {datetime.now()}"
+
+            msg = MIMEMultipart()
+            msg['From'] = self.from_email
+            msg['To'] = to_email
+            msg['Subject'] = subject
+
+            msg.attach(MIMEText(body, 'plain'))
+
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(msg)
+
+            print("Email was sent!")
+
+        except smtplib.SMTPAuthenticationError:
+            error_message = "Error: The server didn't accept the username/password combination."
+            logging.error(error_message)
+        except smtplib.SMTPConnectError:
+            error_message = "Error: Unable to establish a connection to the email server."
+            logging.error(error_message)
+        except smtplib.SMTPServerDisconnected:
+            error_message = "Error: Server unexpectedly disconnected."
+            logging.error(error_message)
+        except Exception as e:
+            error_message = f"An error occurred: {e}"
+            logging.error(error_message)
+
 
 class CemirUtilsEmail:
     def __init__(self, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_ssl=True):
