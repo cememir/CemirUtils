@@ -1378,14 +1378,9 @@ class CemirUtils:
         """
         Belirtilen tarihe gün sayısı ekleyerek yeni bir tarih hesaplar.
 
-
         Args:
             date (str): Başlangıç tarihi (YYYY-MM-DD formatında).
             days (int): Eklenecek gün sayısı.
-
-        * Örnek:
-        >>> utils =CemirUtils()
-        >>> utils.time_add_days_to_date("2024-05-10", 100)
 
         Returns:
             datetime: Yeni tarih.
@@ -1484,9 +1479,6 @@ class CemirUtils:
         Args:
             date (str): Tarih (YYYY-MM-DD formatında).
 
-        * Örnek:
-        >>> utils =CemirUtils()
-        >>> print(utils.time_todatetime("2024-05-10"))
 
         Returns:
             str: Formatlanmış tarih.
@@ -1504,10 +1496,6 @@ class CemirUtils:
         Dönüş:
         dict: Geçen yıl, ay, gün, saat, dakika ve saniyeleri içeren sözlük.
 
-        Örnek:
-        >>> cem = CemirUtils(None)
-        >>> cem.time_since('2020-01-01 00:00:00')
-        {'years': 4, 'months': 4, 'days': 25, 'hours': 14, 'minutes': 35, 'seconds': 10}
         """
         past_date = datetime.strptime(past_date, '%Y-%m-%d %H:%M:%S')
         now = datetime.now()
@@ -1558,11 +1546,6 @@ class CemirUtils:
             text (str): Değiştirilecek metin.
             replacements (dict): Değiştirilecek değer çiftleri (anahtar: eski değer, değer: yeni değer).
 
-        Örnek:
-
-        >>> utils = CemirUtils()
-        >>> print(utils.str_replace_multiple("asd muslu asd", {"asd": "muslu", "muslu": "emir"}))
-
         Returns:
             str: Değiştirilmiş metin.
         """
@@ -1578,12 +1561,6 @@ class CemirUtils:
         Args:
             text (str): Değiştirilecek metin.
             values (tuple): Değiştirilecek değerler.
-
-        Örnek:
-
-        >>> utils = CemirUtils()
-        >>> print(utils.str_replace_with_last("asd muslu asd", ("muslu", "emir"}))
-
 
         Returns:
             str: Değiştirilmiş metin.
@@ -1605,10 +1582,6 @@ class CemirUtils:
         Dönüş:
         list: Skaler değer ile çarpılmış veri listesi.
 
-        Örnek:
-        >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.list_multiply_by_scalar(2)
-        [2, 4, 6]
         """
         if isinstance(self.data, list):
             return [x * scalar for x in self.data]
@@ -1625,10 +1598,6 @@ class CemirUtils:
         Dönüş:
         int: Değerin listede kaç kez geçtiği.
 
-        Örnek:
-        >>> ceml = CemirUtils([1, 2, 2, 3])
-        >>> ceml.list_get_frequency(2)
-        2
         """
         if isinstance(self.data, list):
             return self.data.count(value)
@@ -1642,10 +1611,6 @@ class CemirUtils:
         Dönüş:
         list: Tersine çevrilmiş veri listesi.
 
-        Örnek:
-        >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.list_reverse()
-        [3, 2, 1]
         """
         if isinstance(self.data, list):
             return self.data[::-1]
@@ -1659,10 +1624,6 @@ class CemirUtils:
         Dönüş:
         int, float: Veri listesindeki en büyük değer.
 
-        Örnek:
-        >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.list_get_max_value()
-        3
         """
         if isinstance(self.data, list):
             return max(self.data)
@@ -1676,10 +1637,6 @@ class CemirUtils:
         Dönüş:
         int, float: Veri listesindeki en küçük değer.
 
-        Örnek:
-        >>> ceml = CemirUtils([1, 2, 3])
-        >>> ceml.list_get_min_value()
-        1
         """
         if isinstance(self.data, list):
             return min(self.data)
@@ -1696,14 +1653,6 @@ class CemirUtils:
         Dönüş:
         dict, list: Filtrelenmiş veri.
 
-        Örnek:
-        >>> cemd = CemirUtils({'a': 1, 'b': 2, 'c': 3})
-        >>> cemd.dict_filter_by_key('b')
-        {'b': 2}
-
-        >>> ceml = CemirUtils([{'a': 1}, {'b': 2}, {'a': 3}])
-        >>> ceml.dict_filter_by_key('a')
-        [{'a': 1}, {'a': 3}]
         """
         if isinstance(self.data, dict):
             return {k: v for k, v in self.data.items() if k == key}
@@ -1719,14 +1668,6 @@ class CemirUtils:
         Dönüş:
         list: Anahtarlar listesi.
 
-        Örnek:
-        >>> cemd = CemirUtils({'a': 1, 'b': 2, 'c': 3})
-        >>> cemd.dict_get_keys()
-        ['a', 'b', 'c']
-
-        >>> ceml = CemirUtils([{'a': 1}, {'b': 2}, {'a': 3}])
-        >>> ceml.dict_get_keys()
-        ['a', 'b', 'a']
         """
         if isinstance(self.data, dict):
             return list(self.data.keys())
@@ -1745,10 +1686,6 @@ class CemirUtils:
         Dönüş:
         dict: Birleştirilmiş sözlük.
 
-        Örnek:
-        >>> cemd = CemirUtils({})
-        >>> cemd.dict_merge({'a': 1}, {'b': 2})
-        {'a': 1, 'b': 2}
         """
         if all(isinstance(d, dict) for d in dicts):
             merged = {}
@@ -1768,10 +1705,6 @@ class CemirUtils:
         Dönüş:
         list: Eşik değerinden büyük olan öğeleri içeren liste.
 
-        Örnek:
-        >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.list_filter_greater_than(5)
-        [9, 6]
         """
         return [x for x in self.data if x > threshold]
 
@@ -1785,10 +1718,6 @@ class CemirUtils:
         Dönüş:
         list: Eşik değerinden küçük olan öğeleri içeren liste.
 
-        Örnek:
-        >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.list_filter_less_than(4)
-        [3, 1, 1, 2, 3]
         """
         return [x for x in self.data if x < threshold]
 
@@ -1799,10 +1728,6 @@ class CemirUtils:
         Dönüş:
         list: Tek katmanlı liste.
 
-        Örnek:
-        >>> ceml = CemirUtils([[1, 2], [3, 4], [5]])
-        >>> ceml.list_flatten()
-        [1, 2, 3, 4, 5]
         """
         if isinstance(self.data, list) and all(isinstance(i, list) for i in self.data):
             return [item for sublist in self.data for item in sublist]
@@ -1816,10 +1741,6 @@ class CemirUtils:
         Dönüş:
         int/float: Listedeki sayısal değerlerin toplamı.
 
-        Örnek:
-        >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.list_sum_values()
-        44
         """
         return sum(self.data)
 
@@ -1830,10 +1751,6 @@ class CemirUtils:
         Dönüş:
         float: Listedeki sayısal değerlerin ortalaması. Liste boşsa 0 döner.
 
-        Örnek:
-        >>> cem = CemirUtils([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5])
-        >>> cem.list_average()
-        4.0
         """
         return sum(self.data) / len(self.data) if self.data else 0
 
