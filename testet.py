@@ -1,40 +1,29 @@
-import time
-import functools
+from cemirutils import CemirUtilsHTTP
 
-class CemirUtils:
-
-    @staticmethod
-    def deprecate(message):
-        def decorator(func):
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                print(f"WARNING: {func.__name__} is deprecated. {message}")
-                return func(*args, **kwargs)
-            return wrapper
-        return decorator
-
-    @staticmethod
-    def debug(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            print(f"DEBUG: Calling function '{func.__name__}' with arguments {args} and keyword arguments {kwargs}")
-            result = func(*args, **kwargs)
-            print(f"DEBUG: Function '{func.__name__}' returned {result}")
-            return result
-        return wrapper
+http = CemirUtilsHTTP()
 
 
-# Kullanım örnekleri:
+# Mevcut tüm metodların isimlerini yazdır
+print(http.get_methods())
 
-@CemirUtils.deprecate("Please use new_function instead.")
-def old_function(x, y):
-    return x + y
+get_response = http.get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("GET Response:", get_response)
 
-@CemirUtils.debug
-def add_numbers(a, b):
-    return a + b
+# POST isteği
+post_data = {"title": "foo", "body": "bar", "userId": 1}
+post_response = http.post("https://jsonplaceholder.typicode.com/posts", data=post_data, verify_ssl=True)
+print("POST Response:", post_response)
 
+# PUT isteği
+put_data = {"title": "foo", "body": "bar", "userId": 1}
+put_response = http.put("https://jsonplaceholder.typicode.com/posts/1", data=put_data, verify_ssl=True)
+print("PUT Response:", put_response)
 
-# Örnek fonksiyonları çalıştırma
-old_function(3, 5)
-add_numbers(3, 5)
+# DELETE isteği
+delete_response = http.delete("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("DELETE Response:", delete_response)
+
+# PATCH isteği
+patch_data = {"title": "foo"}
+patch_response = http.patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data, verify_ssl=True)
+print("PATCH Response:", patch_response)

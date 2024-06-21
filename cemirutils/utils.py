@@ -1,17 +1,20 @@
+import ast
 import base64
 import csv
 import functools
+import http.client
+import http.client
 import inspect
 import json
 import logging
 import os
+import re
 import smtplib
 import sqlite3
 import ssl
 import subprocess
 import sys
 import time
-import urllib.request
 import zipfile
 from calendar import monthrange
 from datetime import datetime
@@ -23,10 +26,399 @@ from email.mime.text import MIMEText
 from functools import wraps
 from http.client import HTTPSConnection
 from http.server import SimpleHTTPRequestHandler, HTTPServer
-from urllib import request, parse
-from urllib.parse import urlparse
+from urllib import request
+from urllib.parse import urlparse, urlencode
 
-ver = "2.1.1"
+ver = "2.1.2"
+
+
+def cprint(data, indent=0):
+    """
+    İç içe veri türlerine göre renklendirme yaparak çıktı verir.
+
+    Args:
+        data (any): Yazdırılacak veri.
+        indent (int): Girinti seviyesi.
+
+    Returns:
+        None
+    """
+    colors = {
+        "red": "\033[91m",
+        "green": "\033[92m",
+        "blue": "\033[94m",
+        "yellow": "\033[93m",
+        "cyan": "\033[96m",
+        "magenta": "\033[95m",
+        "reset": "\033[0m"
+    }
+
+    def print_with_indent(string, indent_level):
+        print(" " * 4 * indent_level + string)
+
+    def colorize_numbers(string):
+        def replace_with_color(match):
+            value = match.group(0)
+            if '.' in value:
+                return f'{colors["yellow"]}{value}{colors["reset"]}'
+            else:
+                return f'{colors["blue"]}{value}{colors["reset"]}'
+
+        return re.sub(r'\d+\.\d+|\d+', replace_with_color, string)
+
+    if isinstance(data, str):
+        print_with_indent(f'{colors["green"]}String: {colorize_numbers(data)}{colors["reset"]}', indent)
+    elif isinstance(data, int):
+        print_with_indent(f'{colors["blue"]}Integer: {data}{colors["reset"]}', indent)
+    elif isinstance(data, float):
+        print_with_indent(f'{colors["yellow"]}Float: {data}{colors["reset"]}', indent)
+    elif isinstance(data, bool):
+        print_with_indent(f'{colors["cyan"]}Boolean: {data}{colors["reset"]}', indent)
+    elif isinstance(data, list):
+        print_with_indent(f'{colors["magenta"]}List:{colors["reset"]}', indent)
+        for item in data:
+            cprint(item, indent + 1)
+    elif isinstance(data, dict):
+        print_with_indent(f'{colors["red"]}Dictionary:{colors["reset"]}', indent)
+        for key, value in data.items():
+            print_with_indent(f'{colors["green"]}{key}:{colors["reset"]}', indent + 1)
+            cprint(value, indent + 2)
+    else:
+        print_with_indent(str(data), indent)
+
+
+class CemirUtilsAMP:
+    def fetch_html(self, url):
+        parsed_url = urlparse(url)
+        headers = {'User-Agent': 'CemirUtils'}
+        conn = http.client.HTTPSConnection(parsed_url.netloc)
+        conn.request("GET", parsed_url.path, headers=headers)
+        response = conn.getresponse()
+        if response.status == 200:
+            html_content = response.read().decode('utf-8')
+            conn.close()
+            return html_content
+        else:
+            conn.close()
+            raise Exception(f"Failed to fetch URL {url}: {response.status} {response.reason}")
+
+    def convert_to_amp(self, html_content):
+        # Add AMP HTML boilerplate
+        html_content = html_content.replace('<html', '<html ⚡').replace('xmlns="http://www.w3.org/1999/xhtml"', '')
+
+        # Add AMP specific meta tags and script
+        head_close_idx = html_content.find('</head>')
+        if head_close_idx != -1:
+            amp_meta = '''
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+<script async src="https://cdn.ampproject.org/v0.js"></script>
+<style amp-boilerplate>body{visibility:hidden} .amp {visibility:visible}</style>
+<noscript><style amp-boilerplate>body{visibility:visible}</style></noscript>
+'''
+            html_content = html_content[:head_close_idx] + amp_meta + html_content[head_close_idx:]
+
+        # Convert img tags to amp-img
+        html_content = self.convert_img_tags(html_content)
+
+        # Convert video tags to amp-video
+        html_content = self.convert_video_tags(html_content)
+
+        return html_content
+
+    def convert_img_tags(self, html_content):
+        # Simple img to amp-img conversion
+        img_start = html_content.find('<img')
+        while img_start != -1:
+            img_end = html_content.find('>', img_start)
+            if img_end == -1:
+                break
+            img_tag = html_content[img_start:img_end + 1]
+            amp_img_tag = img_tag.replace('<img', '<amp-img').replace('/>', ' layout="responsive" width="600" height="400"></amp-img>')
+            html_content = html_content[:img_start] + amp_img_tag + html_content[img_end + 1:]
+            img_start = html_content.find('<img', img_start + len(amp_img_tag))
+        return html_content
+
+    def convert_video_tags(self, html_content):
+        # Simple video to amp-video conversion
+        video_start = html_content.find('<video')
+        while video_start != -1:
+            video_end = html_content.find('</video>', video_start)
+            if video_end == -1:
+                break
+            video_tag = html_content[video_start:video_end + 8]
+            amp_video_tag = video_tag.replace('<video', '<amp-video').replace('</video>', '</amp-video>').replace('>', ' layout="responsive" width="600" height="400">')
+            html_content = html_content[:video_start] + amp_video_tag + html_content[video_end + 8:]
+            video_start = html_content.find('<video', video_start + len(amp_video_tag))
+        return html_content
+
+    def save_to_file(self, content, filename):
+        with open(filename, 'w', encoding='utf-8') as file:
+            file.write(content)
+        cprint(f"Content saved to {filename}")
+
+
+class CemirUtilsHTTP:
+
+    def __init__(self):
+        """
+        CemirUtilsHTTP
+        """
+
+        self.default_headers = {"User-Agent": "CemirUtils"}
+
+    def get_methods(self):
+        """
+        CemirUtilsHTTP sınıfının mevcut tüm metodlarının isimlerini yazdırır.
+        """
+        return [method for method in dir(CemirUtilsHTTP) if callable(getattr(CemirUtilsHTTP, method)) and not method.startswith("__")]
+
+    def server(self, port=8000, ip='127.0.0.1', ssl_cert=None, ssl_key=None, username=None, password=None, directory=None):
+        class CemirUtilsHTTPRequestHandler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=directory, **kwargs)
+
+            def do_GET(self):
+                if username and password:
+                    if not self.check_basic_auth(username, password):
+                        self.send_response(401)
+                        self.send_header('WWW-Authenticate', 'Basic realm="CemirUtils"')
+                        self.end_headers()
+                        self.wfile.write(b'Unauthorized')
+                        return
+
+                super().do_GET()
+
+            def check_basic_auth(self, username, password):
+                auth_header = self.headers.get('Authorization')
+                if auth_header is None:
+                    return False
+
+                auth_type, auth_value = auth_header.split(None, 1)
+                if auth_type.lower() != 'basic':
+                    return False
+
+                encoded_credentials = auth_value.encode('utf-8')
+                credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+                auth_username, auth_password = credentials.split(':', 1)
+
+                return auth_username == username and auth_password == password
+
+        httpd = HTTPServer((ip, port), CemirUtilsHTTPRequestHandler)
+
+        if ssl_cert and ssl_key:
+            httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_cert, keyfile=ssl_key, server_side=True)
+            print(f"Starting HTTP server with SSL on https://{ip}:{port}")
+
+        print(f"Starting HTTP server on http://{ip}:{port}")
+        httpd.serve_forever()
+
+    def send_request(self, url, method='GET', headers=None, data=None, destination=None):
+        """
+        Send an HTTP request to the given URL with the specified method, headers, and data,
+        using the default User-Agent if not provided in headers.
+        If destination is provided, download the file to the destination path.
+        """
+
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+        try:
+            req = request.Request(url, headers=headers or self.default_headers, method=method, data=data)
+            with request.urlopen(req) as response:
+                content = response.read()
+                result = {
+                    "url": url,
+                    "method": method,
+                    "headers": dict(response.headers),
+                    "content": "Binary data (PDF, image, etc.)"
+                }
+                if destination:
+                    with open(destination, 'wb') as f:
+                        f.write(content)
+                    result["saved_to"] = destination
+                return json.dumps(result, indent=4)
+        except Exception as e:
+            return f"Failed to send request to {url}, error: {str(e)}"
+
+    def get(self, url, params=None, headers=None, verify_ssl=True):
+        """
+        GET isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        params (dict): URL parametreleri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if params:
+            url += '?' + urlencode(params)
+
+        req = request.Request(url, headers=headers)
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def post(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        POST isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if data:
+            data = urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='POST')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def put(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        PUT isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if data:
+            data = urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='PUT')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def delete(self, url, headers=None, verify_ssl=True):
+        """
+        DELETE isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        req = request.Request(url, headers=headers, method='DELETE')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+    def patch(self, url, data=None, headers=None, verify_ssl=True):
+        """
+        PATCH isteği gönderir.
+
+        Parametreler:
+        url (str): İstek URL'si.
+        data (dict): Gönderilecek veri.
+        headers (dict): İstek başlıkları.
+        verify_ssl (bool): SSL doğrulama kontrolü.
+
+        Dönüş:
+        dict, str: JSON yanıtı veya düz metin.
+        """
+        if headers is None or "User-Agent" not in headers:
+            headers = self.default_headers.copy()
+
+        if data:
+            data = urlencode(data).encode('utf-8')
+
+        req = request.Request(url, data=data, headers=headers, method='PATCH')
+        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
+        content = response.read().decode('utf-8')
+
+        if 'application/json' in response.getheader('Content-Type'):
+            return json.loads(content)
+        else:
+            return content
+
+
+class CemirUtilsLoopTimer:
+    def __init__(self):
+        self.loop_times = []
+
+    class LoopTimerContext:
+        def __init__(self, timer):
+            self.timer = timer
+
+        def __enter__(self):
+            self.start = time.time()
+            return self
+
+        def __exit__(self, *args):
+            self.timer.loop_times.append(time.time() - self.start)
+
+    def check_loop(self):
+        return self.LoopTimerContext(self)
+
+    def extract_loops(self, code):
+        return [(node, type(node).__name__) for node in ast.walk(ast.parse(code)) if isinstance(node, (ast.For, ast.While))]
+
+    def loop_timer_decorator(self, func):
+        def wrapper(*args, **kwargs):
+            start_func_time = time.time()
+            func_code = inspect.getsource(func)
+            loop_nodes = self.extract_loops(func_code)
+            result = func(*args, **kwargs)
+            end_func_time = time.time()
+
+            cprint("------------------")
+            for i, (node, node_type) in enumerate(loop_nodes):
+                cprint(f"Loop {i + 1} ({node_type} at line {node.lineno}): {self.loop_times[i]:.2f} seconds")
+            cprint(f"Total execution time of '{func.__name__}': {end_func_time - start_func_time:.2f} seconds")
+            cprint("------------------")
+
+            self.loop_times.clear()
+            return result
+
+        return wrapper
+
+    def loop(self, func):
+        return self.loop_timer_decorator(func)
 
 
 class CemirUtilsDecorators:
@@ -459,7 +851,7 @@ class IPGeolocation:
             if force_download or not os.path.isfile(self.database_file):
                 # Veritabanı dosyasını indir
                 print("Veritabanı dosyasını indiriyor...")
-                urllib.request.urlretrieve(self.database_url, self.download_path)
+                request.urlretrieve(self.database_url, self.download_path)
                 print("Veritabanı dosyasını indirildi!")
 
                 # Zip dosyasını çıkart
@@ -1500,206 +1892,3 @@ class CemirUtils:
             list: Azalan sırada sıralanmış liste.
         """
         return sorted(self.data, reverse=True)
-
-    def http_server(self, port=8000, ip='127.0.0.1', ssl_cert=None, ssl_key=None, username=None, password=None, directory=None):
-        class CemirUtilsHTTPRequestHandler(SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, directory=directory, **kwargs)
-
-            def do_GET(self):
-                if username and password:
-                    if not self.check_basic_auth(username, password):
-                        self.send_response(401)
-                        self.send_header('WWW-Authenticate', 'Basic realm="CemirUtils"')
-                        self.end_headers()
-                        self.wfile.write(b'Unauthorized')
-                        return
-
-                super().do_GET()
-
-            def check_basic_auth(self, username, password):
-                auth_header = self.headers.get('Authorization')
-                if auth_header is None:
-                    return False
-
-                auth_type, auth_value = auth_header.split(None, 1)
-                if auth_type.lower() != 'basic':
-                    return False
-
-                encoded_credentials = auth_value.encode('utf-8')
-                credentials = base64.b64decode(encoded_credentials).decode('utf-8')
-                auth_username, auth_password = credentials.split(':', 1)
-
-                return auth_username == username and auth_password == password
-
-        httpd = HTTPServer((ip, port), CemirUtilsHTTPRequestHandler)
-
-        if ssl_cert and ssl_key:
-            httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_cert, keyfile=ssl_key, server_side=True)
-            print(f"Starting HTTP server with SSL on https://{ip}:{port}")
-
-        print(f"Starting HTTP server on http://{ip}:{port}")
-        httpd.serve_forever()
-
-    def http_send_request(self, url, method='GET', headers=None, data=None, destination=None):
-        """
-        Send an HTTP request to the given URL with the specified method, headers, and data,
-        using the default User-Agent if not provided in headers.
-        If destination is provided, download the file to the destination path.
-        """
-
-        if headers is None or "User-Agent" not in headers:
-            headers = self.default_headers.copy()
-        try:
-            req = request.Request(url, headers=headers or self.default_headers, method=method, data=data)
-            with request.urlopen(req) as response:
-                content = response.read()
-                result = {
-                    "url": url,
-                    "method": method,
-                    "headers": dict(response.headers),
-                    "content": "Binary data (PDF, image, etc.)"
-                }
-                if destination:
-                    with open(destination, 'wb') as f:
-                        f.write(content)
-                    result["saved_to"] = destination
-                return json.dumps(result, indent=4)
-        except Exception as e:
-            return f"Failed to send request to {url}, error: {str(e)}"
-
-    def http_get(self, url, params=None, headers=None, verify_ssl=True):
-        """
-        GET isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        params (dict): URL parametreleri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None or "User-Agent" not in headers:
-            headers = self.default_headers.copy()
-
-        if params:
-            url += '?' + parse.urlencode(params)
-
-        req = request.Request(url, headers=headers)
-        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_post(self, url, data=None, headers=None, verify_ssl=True):
-        """
-        POST isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        data (dict): Gönderilecek veri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None or "User-Agent" not in headers:
-            headers = self.default_headers.copy()
-
-        if data:
-            data = parse.urlencode(data).encode('utf-8')
-
-        req = request.Request(url, data=data, headers=headers, method='POST')
-        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_put(self, url, data=None, headers=None, verify_ssl=True):
-        """
-        PUT isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        data (dict): Gönderilecek veri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None or "User-Agent" not in headers:
-            headers = self.default_headers.copy()
-
-        if data:
-            data = parse.urlencode(data).encode('utf-8')
-
-        req = request.Request(url, data=data, headers=headers, method='PUT')
-        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_delete(self, url, headers=None, verify_ssl=True):
-        """
-        DELETE isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None or "User-Agent" not in headers:
-            headers = self.default_headers.copy()
-
-        req = request.Request(url, headers=headers, method='DELETE')
-        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content
-
-    def http_patch(self, url, data=None, headers=None, verify_ssl=True):
-        """
-        PATCH isteği gönderir.
-
-        Parametreler:
-        url (str): İstek URL'si.
-        data (dict): Gönderilecek veri.
-        headers (dict): İstek başlıkları.
-        verify_ssl (bool): SSL doğrulama kontrolü.
-
-        Dönüş:
-        dict, str: JSON yanıtı veya düz metin.
-        """
-        if headers is None or "User-Agent" not in headers:
-            headers = self.default_headers.copy()
-
-        if data:
-            data = parse.urlencode(data).encode('utf-8')
-
-        req = request.Request(url, data=data, headers=headers, method='PATCH')
-        response = request.urlopen(req, timeout=10, context=None if verify_ssl else request._create_unverified_context())
-        content = response.read().decode('utf-8')
-
-        if 'application/json' in response.getheader('Content-Type'):
-            return json.loads(content)
-        else:
-            return content

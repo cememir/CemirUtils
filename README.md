@@ -28,7 +28,155 @@ pip freeze | grep cemir
 
 # Kullanım Örnekleri
 
-## Dekoratörler
+
+## Loop's Timer
+```python
+import time
+from cemirutils import CemirUtilsLoopTimer
+
+timer = CemirUtilsLoopTimer()
+
+@timer.loop
+def example_function():
+    with timer.check_loop():
+        for _ in range(10):
+            time.sleep(0.1)
+
+    with timer.check_loop():
+        count = 0
+        while count < 3:
+            count += 1
+            time.sleep(count)
+
+    with timer.check_loop():
+        for _ in range(5):
+            time.sleep(0.1)
+
+
+example_function()
+
+# Output:
+# String: ------------------
+# String: Loop 1 (For at line 4): 1.09 seconds
+# String: Loop 2 (While at line 9): 6.04 seconds
+# String: Loop 3 (For at line 15): 0.54 seconds
+# String: Total execution time of 'example_function': 7.68 seconds
+# String: ------------------
+
+```
+
+
+## colorize print
+```python
+from cemirutils import cprint
+
+data = {
+    "name": "John",
+    "age": 30,
+    "is_student": False,
+    "languages": ["Python", "JavaScript"],
+    "grades": {
+        "math": 90,
+        "science": 85
+    }
+}
+cprint(data)
+cprint(1)
+cprint("@#₺")
+cprint(1.12)
+cprint([1,2,"asd"])
+
+```
+![colorize print](https://raw.githubusercontent.com/cememir/CemirUtils/main/cprint.png)
+
+
+## Tetiklenen uygun koşulların satır numaralarını ve koşul ifadelerini göster
+
+```python
+from cemirutils import CemirUtilsConditions
+
+cemir_utils = CemirUtilsConditions()
+
+@cemir_utils.condition_collector
+def test_function(x, y, z):
+    if x > 15:
+        # print("x is greater than 15")
+        pass
+    elif x < 15 and y > 10:
+        # print("x is less than 15 and y is greater than 10")
+        pass
+    else:
+        # print("x is not within the expected range or y is not greater than 10")
+        pass
+
+    if y == 20:
+        # print("y is exactly 20")
+        pass
+    elif y >= 15:
+        # print("y is greater than or equal to 15")
+        pass
+    else:
+        # print("y is less than 15")
+        pass
+
+    if z == "hello":
+        # print("z is 'hello'")
+        pass
+    elif z == "world":
+        # print("z is 'world'")
+        pass
+    else:
+        # print("z is something else")
+        pass
+
+    if x == 10:
+        # print("x is 10")
+        pass
+    elif x >= 10:
+        # print("x is greater than or equal to 10")
+        pass
+    else:
+        # print("x is less than 10")
+        pass
+
+    if y % 2 == 0:
+        # print("y is even")
+        pass
+    else:
+        # print("y is odd")
+        pass
+
+    if z.startswith("hq"):
+        # print("z starts with 'h'")
+        pass
+    elif z.startswith("w"):
+        # print("z starts with 'w'")
+        pass
+    else:
+        # print("z starts with another letter")
+        pass
+
+
+test_function(10, 20, "hello")
+
+# Output:
+# x is less than 15 and y is greater than 10
+# y is exactly 20
+# z is 'hello'
+# x is 10
+# y is even
+# z starts with another letter
+
+# Line 10: elif x < 15 and y > 10:
+# Line 15: if y == 20:
+# Line 22: if z == "hello":
+# Line 29: if x == 10:
+# Line 36: if y % 2 == 0:
+# Line 45: else:
+```
+
+
+## Send Mail after function done
 
 ```python
 from cemirutils import CemirUtilsFunctionNotification
@@ -50,6 +198,43 @@ def important_action():
 important_action()
 
 ```
+
+
+## HTTP istek örnekleri
+
+```python
+from cemirutils import CemirUtilsHTTP
+
+http = CemirUtilsHTTP()
+
+
+# Mevcut tüm metodların isimlerini yazdır
+print(http.get_methods())
+
+
+get_response = http.get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("GET Response:", get_response)
+
+# POST isteği
+post_data = {"title": "foo", "body": "bar", "userId": 1}
+post_response = http.post("https://jsonplaceholder.typicode.com/posts", data=post_data, verify_ssl=True)
+print("POST Response:", post_response)
+
+# PUT isteği
+put_data = {"title": "foo", "body": "bar", "userId": 1}
+put_response = http.put("https://jsonplaceholder.typicode.com/posts/1", data=put_data, verify_ssl=True)
+print("PUT Response:", put_response)
+
+# DELETE isteği
+delete_response = http.delete("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("DELETE Response:", delete_response)
+
+# PATCH isteği
+patch_data = {"title": "foo"}
+patch_response = http.patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data, verify_ssl=True)
+print("PATCH Response:", patch_response)
+```
+
 
 ## Dekoratörler
 
@@ -217,92 +402,6 @@ email_util.send_email(
 ```
 
 
-## Tetiklenen uygun koşulların satır numaralarını ve koşul ifadelerini göster
-
-```python
-from cemirutils import CemirUtilsConditions
-
-cemir_utils = CemirUtilsConditions()
-
-@cemir_utils.condition_collector
-def test_function(x, y, z):
-    if x > 15:
-        # print("x is greater than 15")
-        pass
-    elif x < 15 and y > 10:
-        # print("x is less than 15 and y is greater than 10")
-        pass
-    else:
-        # print("x is not within the expected range or y is not greater than 10")
-        pass
-
-    if y == 20:
-        # print("y is exactly 20")
-        pass
-    elif y >= 15:
-        # print("y is greater than or equal to 15")
-        pass
-    else:
-        # print("y is less than 15")
-        pass
-
-    if z == "hello":
-        # print("z is 'hello'")
-        pass
-    elif z == "world":
-        # print("z is 'world'")
-        pass
-    else:
-        # print("z is something else")
-        pass
-
-    if x == 10:
-        # print("x is 10")
-        pass
-    elif x >= 10:
-        # print("x is greater than or equal to 10")
-        pass
-    else:
-        # print("x is less than 10")
-        pass
-
-    if y % 2 == 0:
-        # print("y is even")
-        pass
-    else:
-        # print("y is odd")
-        pass
-
-    if z.startswith("hq"):
-        # print("z starts with 'h'")
-        pass
-    elif z.startswith("w"):
-        # print("z starts with 'w'")
-        pass
-    else:
-        # print("z starts with another letter")
-        pass
-
-
-test_function(10, 20, "hello")
-
-# Output:
-# x is less than 15 and y is greater than 10
-# y is exactly 20
-# z is 'hello'
-# x is 10
-# y is even
-# z starts with another letter
-
-# Line 10: elif x < 15 and y > 10:
-# Line 15: if y == 20:
-# Line 22: if z == "hello":
-# Line 29: if x == 10:
-# Line 36: if y % 2 == 0:
-# Line 45: else:
-```
-
-
 ## IPGeolocation işlemleri.
 
 ```python
@@ -319,6 +418,7 @@ ip_address = "121.0.11.0"
 location_info = ip_geolocator.get_ip_location(ip_address, force_download=False)
 print(location_info)
 ```
+
 
 ## PostgreSQL için CRUD işlemleri.
 ```python
@@ -348,7 +448,6 @@ print(type(asd), asd)
 print(utils.delete('test_table_json', 'id = 1'))
 print(utils.read('test_table_json'))
 ```
-
 
 
 ## Kütüphane, farklı veri işleme işlevlerini sağlayan `CemirUtils` sınıfını içerir.
@@ -398,39 +497,6 @@ print(utils.linux_find("/", "new_file.txt"))
 print(utils.linux_grep("a", "new_file.txt"))
 ```
 
-## HTTP istek örnekleri
-
-```python
-from cemirutils import CemirUtils
-
-# Mevcut tüm metodların isimlerini yazdır
-cemir_utils = CemirUtils(None)
-print(cemir_utils.get_methods())
-
-
-get_response = cemir_utils.http_get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
-print("GET Response:", get_response)
-
-# POST isteği
-post_data = {"title": "foo", "body": "bar", "userId": 1}
-post_response = cemir_utils.http_post("https://jsonplaceholder.typicode.com/posts", data=post_data, verify_ssl=True)
-print("POST Response:", post_response)
-
-# PUT isteği
-put_data = {"title": "foo", "body": "bar", "userId": 1}
-put_response = cemir_utils.http_put("https://jsonplaceholder.typicode.com/posts/1", data=put_data, verify_ssl=True)
-print("PUT Response:", put_response)
-
-# DELETE isteği
-delete_response = cemir_utils.http_delete("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
-print("DELETE Response:", delete_response)
-
-# PATCH isteği
-patch_data = {"title": "foo"}
-patch_response = cemir_utils.http_patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data, verify_ssl=True)
-print("PATCH Response:", patch_response)
-
-```
 
 ## List ve Dict işlemleri
 
@@ -480,6 +546,7 @@ print(cemd.dict_get_keys())
 print(cemd.dict_filter_by_key('name'))
 print(cemd.dict_merge({'a': 1}, {'b': 2}))
 ```
+
 
 ## Zaman işlemleri
 
