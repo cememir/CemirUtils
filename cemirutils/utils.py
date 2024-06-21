@@ -167,6 +167,7 @@ class CemirUtilsHTTP:
 
         self.default_headers = {"User-Agent": "CemirUtils"}
 
+
     def get_methods(self):
         """
         CemirUtilsHTTP sınıfının mevcut tüm metodlarının isimlerini yazdırır.
