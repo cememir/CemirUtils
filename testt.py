@@ -1,69 +1,30 @@
-import re
+from cemirutils import CemirUtilsHTTP
+
+http = CemirUtilsHTTP()
 
 
-def cprint(data, indent=0):
-    """
-    İç içe veri türlerine göre renklendirme yaparak çıktı verir.
-
-    Args:
-        data (any): Yazdırılacak veri.
-        indent (int): Girinti seviyesi.
-
-    Returns:
-        None
-    """
-    colors = {
-        "red": "\033[91m",
-        "green": "\033[92m",
-        "blue": "\033[94m",
-        "yellow": "\033[93m",
-        "cyan": "\033[96m",
-        "magenta": "\033[95m",
-        "reset": "\033[0m"
-    }
-
-    def print_with_indent(string, indent_level):
-        print(" " * 4 * indent_level + string)
-
-    def colorize_numbers(string):
-        def replace_with_color(match):
-            value = match.group(0)
-            if '.' in value:
-                return f'{colors["yellow"]}{value}{colors["reset"]}'
-            else:
-                return f'{colors["blue"]}{value}{colors["reset"]}'
-
-        return re.sub(r'\d+\.\d+|\d+', replace_with_color, string)
-
-    if isinstance(data, str):
-        print_with_indent(f'{colors["green"]}String: {colorize_numbers(data)}{colors["reset"]}', indent)
-    elif isinstance(data, int):
-        print_with_indent(f'{colors["blue"]}Integer: {data}{colors["reset"]}', indent)
-    elif isinstance(data, float):
-        print_with_indent(f'{colors["yellow"]}Float: {data}{colors["reset"]}', indent)
-    elif isinstance(data, bool):
-        print_with_indent(f'{colors["cyan"]}Boolean: {data}{colors["reset"]}', indent)
-    elif isinstance(data, list):
-        print_with_indent(f'{colors["magenta"]}List:{colors["reset"]}', indent)
-        for item in data:
-            cprint(item, indent + 1)
-    elif isinstance(data, dict):
-        print_with_indent(f'{colors["red"]}Dictionary:{colors["reset"]}', indent)
-        for key, value in data.items():
-            print_with_indent(f'{colors["green"]}{key}:{colors["reset"]}', indent + 1)
-            cprint(value, indent + 2)
-    else:
-        print_with_indent(str(data), indent)
+# Show methods name
+print(http.get_methods())
 
 
-# Test cprint function with specific strings
-test_strings = [
-    "------------------",
-    "Loop 1 (For at line 10): 0.12 seconds",
-    "Loop 2 (While at line 20): 0.34 seconds",
-    "Total execution time of 'example_function': 1.56 seconds",
-    "------------------"
-]
+get_response = http.get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("GET Response:", get_response)
 
-for s in test_strings:
-    cprint(s)
+# POST
+post_data = {"title": "foo", "body": "bar", "userId": 1}
+post_response = http.post("https://jsonplaceholder.typicode.com/posts", data=post_data, verify_ssl=True)
+print("POST Response:", post_response)
+
+# PUT
+put_data = {"title": "foo", "body": "bar", "userId": 1}
+put_response = http.put("https://jsonplaceholder.typicode.com/posts/1", data=put_data, verify_ssl=True)
+print("PUT Response:", put_response)
+
+# DELETE
+delete_response = http.delete("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
+print("DELETE Response:", delete_response)
+
+# PATCH
+patch_data = {"title": "foo"}
+patch_response = http.patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data, verify_ssl=True)
+print("PATCH Response:", patch_response)

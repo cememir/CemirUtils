@@ -15,9 +15,9 @@ pip install -U cemirutils
 ```
 
 # Authors
-1. Cem Emir Yüksektepe ([cememir2017@gmail.com](cememir2017@gmail.com))
-2. Muslu Yüksektepe ([musluyuksektepe@gmail.com](musluyuksektepe@gmail.com))
-3. Hasan Yüksektepe ([hasokeyk@gmail.com](hasokeyk@gmail.com))
+1. Cem Emir Yüksektepe ([@gmail.com](mailto:cememir2017@gmail.com)) https://cem.pw
+2. Muslu Yüksektepe ([@gmail.com](mailto:musluyuksektepe@gmail.com)) https://muslu.org
+3. Hasan Yüksektepe ([@gmail.com](mailto:hasokeyk@gmail.com)) https://hayatikodla.net
 
 ## For more information, visit the cemirutils PyPI page.
 * [https://pypi.org/project/cemirutils/](https://pypi.org/project/cemirutils/)
