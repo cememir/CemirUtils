@@ -1,156 +1,35 @@
-CemirUtils Class and Functions Documentation
-----------------------------------------------------------------------------------------
+<meta charset="UTF-8">
 
-`cemirutils` is a Python utility library designed to provide a range of commonly used functions, methods, libraries, and decorators to streamline development in Linux and Python environments.
+# CemirUtils
 
+### Linux ve Pythonda sık kullanılan tüm komut ve kütüphaneleri tek yerden, basit veri işleme işlevlerini içeren bir Python yardımcı kütüphanesidir.
 
-## Requirements
+## Kurulum
 
-- Python 3.9 or higher
+```bash
+wget https://bootstrap.pypa.io/get-pip.py
 
-## Installation
+## PIP Kurulumu
+python3.9 get-pip.py pip cemirutils
+sudo python3.9 get-pip.py pip cemirutils
 
-```sh
-pip install -U cemirutils
-```
+## Güncelleme
+pip install -U pip cemirutils
+python3.9 -m pip install -U pip cemirutils
 
-# Authors
-1. Cem Emir Yüksektepe ([cememir2017@gmail.com](cememir2017@gmail.com))
-2. Muslu Yüksektepe ([musluyuksektepe@gmail.com](musluyuksektepe@gmail.com))
-3. Hasan Yüksektepe ([hasokeyk@gmail.com](hasokeyk@gmail.com))
+sudo pip install -U pip cemirutils
+sudo python3.9 -m pip install -U pip cemirutils
 
-## For more information, visit the cemirutils PyPI page.
-* [https://pypi.org/project/cemirutils/](https://pypi.org/project/cemirutils/)
-* [https://github.com/cememir/CemirUtils](https://github.com/cememir/CemirUtils)
-----------------------------------------------------------------------------------------
-### Classes and Functions
-
-## 1\. `CemirUtilsLoopTimer`
-
--   **Methods:**
-    -   `loop`: Decorator to measure loop execution time.
-    -   `check_loop`: Context manager for loop timing.
-
-## 2\. `CemirUtilsConditions`
-
--   **Methods:**
-    -   `condition_collector`: Decorator to log the lines and conditions met during function execution.
-
-## 3\. `CemirUtilsFunctionNotification`
-
--   **Methods:**
-    -   `notify`: Sends an email notification after the function execution.
-
-## 4\. `CemirUtilsHTTP`
-
--   **Methods:**
-    -   `get_methods`: Returns available HTTP methods.
-    -   `get`: Executes a GET request.
-    -   `post`: Executes a POST request.
-    -   `put`: Executes a PUT request.
-    -   `delete`: Executes a DELETE request.
-    -   `patch`: Executes a PATCH request.
-
-## 5\. `CemirUtilsDecorators`
-
--   **Methods:**
-    -   `timeit`: Measures execution time.
-    -   `log`: Logs function calls and results.
-    -   `retry`: Retries a function upon failure.
-    -   `cache`: Caches function results.
-    -   `cache_with_expiry`: Caches results with an expiry time.
-    -   `deprecate`: Marks a function as deprecated.
-    -   `debug`: Logs detailed function calls.
-    -   `before_after`: Executes actions before and after function calls.
-    -   `rate_limit`: Limits function calls over a period.
-    -   `webhook_request`: Sends a webhook request on function call.
-
-## 6\. `CemirUtilsEmail`
-
--   **Methods:**
-    -   `send_email`: Sends an email with optional attachments.
-
-## 7\. `IPGeolocation`
-
--   **Methods:**
-    -   `create_sqlite_db`: Creates SQLite DB from CSV.
-    -   `get_ip_location`: Retrieves IP location data.
-
-## 8\. `CemirPostgreSQL`
-
--   **Methods:**
-    -   `psql_create_table`: Creates a PostgreSQL table.
-    -   `psql_insert`: Inserts data into a table.
-    -   `insert`: Inserts data.
-    -   `read`: Reads data from a table.
-    -   `update`: Updates table data.
-    -   `delete`: Deletes data from a table.
-
-## 9\. `CemirUtils`
-
--   **Methods for File Operations:**
-
-    -   `linux_ls`: Lists files in a directory.
-    -   `linux_touch`: Creates a new file.
-    -   `linux_gzip`: Compresses a file.
-    -   `linux_cat`: Displays file content.
-    -   `linux_cp`: Copies a file.
-    -   `linux_mv`: Moves a file.
-    -   `linux_rm`: Deletes a file.
-    -   `linux_mkdir`: Creates a new directory.
-    -   `linux_rmdir`: Removes an empty directory.
-    -   `linux_cut`: Cuts fields from a file.
-    -   `linux_find`: Searches for files.
-    -   `linux_grep`: Searches text in a file.
-    
--------------------------------------------------------------------------------------
--   **Methods for List Operations:**
-
-    -   `list_head`: Returns the first N elements.
-    -   `list_tail`: Returns the last N elements.
-    -   `list_main`: Returns the middle elements.
-    -   `list_unique_values`: Returns unique values.
-    -   `list_sort_asc`: Sorts the list in ascending order.
-    -   `list_sort_desc`: Sorts the list in descending order.
-    -   `list_filter_greater_than`: Filters values greater than a given number.
-    -   `list_filter_less_than`: Filters values less than a given number.
-    -   `list_sum_values`: Sums the values.
-    -   `list_average`: Calculates the average.
-    -   `list_flatten`: Flattens a nested list.
-    -   `list_multiply_by_scalar`: Multiplies each element by a scalar.
-    -   `list_get_max_value`: Returns the maximum value.
-    -   `list_get_frequency`: Returns the frequency of a value.
-
--------------------------------------------------------------------------------------
--   **Methods for Dictionary Operations:**
-
-    -   `dict_get_keys`: Returns the keys.
-    -   `dict_filter_by_key`: Filters by key.
-    -   `dict_merge`: Merges dictionaries.
-    - 
--------------------------------------------------------------------------------------
--   **Methods for Time Operations:**
-
-    -   `time_days_between_dates`: Returns days between dates.
-    -   `time_hours_minutes_seconds_between_times`: Returns hours, minutes, and seconds between times.
-    -   `time_until_date`: Returns time until a date.
-    -   `time_add_days_and_format`: Adds days to a date and formats it.
-    -   `time_is_weekend`: Checks if a date is a weekend.
-    -   `time_is_leap_year`: Checks if a year is a leap year.
-    -   `time_days_in_month`: Returns days in a month.
-    -   `time_next_weekday`: Returns the next weekday.
-    -   `time_since`: Returns the time since a date.
-    -   `time_business_days_between_dates`: Returns business days between dates.
-
-This documentation provides an overview of the `CemirUtils` classes and their respective functions, offering a range of utilities for file operations, HTTP requests, email handling, PostgreSQL operations, and more.
+## Kontrol
+pip show cemirutils
+pip freeze | grep cemir
+````
 
 
-----------------------------------------------------------------------------------------
+# Kullanım Örnekleri
 
-# CemirUtils Class and Functions Documentation
 
-## CemirUtilsLoopTimer
-
+## Loop's Timer
 ```python
 import time
 from cemirutils import CemirUtilsLoopTimer
@@ -184,10 +63,34 @@ example_function()
 # String: Total execution time of 'example_function': 7.68 seconds
 # String: ------------------
 
-
 ```
 
-## CemirUtilsConditions
+
+## colorize print
+```python
+from cemirutils import cprint
+
+data = {
+    "name": "John",
+    "age": 30,
+    "is_student": False,
+    "languages": ["Python", "JavaScript"],
+    "grades": {
+        "math": 90,
+        "science": 85
+    }
+}
+cprint(data)
+cprint(1)
+cprint("@#₺")
+cprint(1.12)
+cprint([1,2,"asd"])
+
+```
+![colorize print](https://raw.githubusercontent.com/cememir/CemirUtils/main/cprint.png)
+
+
+## Tetiklenen uygun koşulların satır numaralarını ve koşul ifadelerini göster
 
 ```python
 from cemirutils import CemirUtilsConditions
@@ -272,7 +175,8 @@ test_function(10, 20, "hello")
 # Line 45: else:
 ```
 
-## CemirUtilsFunctionNotification
+
+## Send Mail after function done
 
 ```python
 from cemirutils import CemirUtilsFunctionNotification
@@ -290,11 +194,13 @@ def important_action():
     return {"status": "Important action completed."}
 
 
-# SMTP server must be working
+# SMTP sunucusu çalışıyor olmalı
 important_action()
+
 ```
 
-## CemirUtilsHTTP
+
+## HTTP istek örnekleri
 
 ```python
 from cemirutils import CemirUtilsHTTP
@@ -302,34 +208,35 @@ from cemirutils import CemirUtilsHTTP
 http = CemirUtilsHTTP()
 
 
-# Show methods name
+# Mevcut tüm metodların isimlerini yazdır
 print(http.get_methods())
 
 
 get_response = http.get("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
 print("GET Response:", get_response)
 
-# POST
+# POST isteği
 post_data = {"title": "foo", "body": "bar", "userId": 1}
 post_response = http.post("https://jsonplaceholder.typicode.com/posts", data=post_data, verify_ssl=True)
 print("POST Response:", post_response)
 
-# PUT
+# PUT isteği
 put_data = {"title": "foo", "body": "bar", "userId": 1}
 put_response = http.put("https://jsonplaceholder.typicode.com/posts/1", data=put_data, verify_ssl=True)
 print("PUT Response:", put_response)
 
-# DELETE
+# DELETE isteği
 delete_response = http.delete("https://jsonplaceholder.typicode.com/posts/1", verify_ssl=True)
 print("DELETE Response:", delete_response)
 
-# PATCH
+# PATCH isteği
 patch_data = {"title": "foo"}
 patch_response = http.patch("https://jsonplaceholder.typicode.com/posts/1", data=patch_data, verify_ssl=True)
 print("PATCH Response:", patch_response)
 ```
 
-## CemirUtilsDecorators
+
+## Dekoratörler
 
 ```python
 import time
@@ -368,11 +275,11 @@ may_fail_function()
 
 @CemirUtilsDecorators.cache
 def slow_function(x):
-    time.sleep(2)  # Performing a time-consuming operation.
+    time.sleep(2)  # Zaman alacak bir işlem yapalım.
     return x * x
 
 print(slow_function(4))
-print(slow_function(4))  # This time, result will be fetched from cache
+print(slow_function(4))  # Bu sefer önbellekten sonuç dönecek
 
 # Output: 
 # 16
@@ -381,12 +288,12 @@ print(slow_function(4))  # This time, result will be fetched from cache
 
 @CemirUtilsDecorators.cache_with_expiry(expiry_time=5)
 def cached_function(x):
-    time.sleep(3)  # Performing a time-consuming operation as an example.
+    time.sleep(3)  # Örnek olarak zaman alacak bir işlem yapalım.
     return x * x
 
 print(datetime.now(), cached_function(4))
 time.sleep(1)
-print(datetime.now(), cached_function(4))  # Time has expired, so it will be recalculated
+print(datetime.now(), cached_function(4))  # Süre dolmuş, tekrar hesaplanacak
 
 # Output: 
 # 2024-06-17 13:02:29.906200 16
@@ -426,8 +333,8 @@ print(test_beforeafter("Muslu Y."))
 # 2 Success
 
 
-#  max_call = Specifies how many times a function can be called within a certain period of time.
-#  period = For example, when set to period=10, the function can be called 5 times within a 10-second period.
+#  max_call = Belirli bir zaman dilimi içinde bir fonksiyonun kaç kez çağrılabileceğini belirtir.
+#  period = Örneğin, period=10 olarak ayarlandığında, 10 saniyelik bir süre içinde max_call sayısınca (örn: 5) fonksiyon çağrısına izin verilir.
 @CemirUtilsDecorators.rate_limit(max_calls=5, period=10)
 def limited_function():
     return {"status": "ok"}
@@ -467,10 +374,10 @@ def send_webhook():
     return {'message': 'Webhook request'}
 print(send_webhook())
 
-
 ```
 
-## CemirUtilsEmail
+
+## Email göndermek, dosya eklemek
 
 ```python
 from cemirutils import CemirUtilsEmail
@@ -489,12 +396,13 @@ email_util.send_email(
     subject="Test Subject",
     body_html="<html><body><h1>This is a test email in HTML.</h1></body></html>",
     attachments=["2024.pdf", "not_found.log"],
-    zip_files=False  # ZIP if files are exist
+    zip_files=False  # Dosyaları zipleyip eklemek için
 )
 
 ```
 
-## IPGeolocation
+
+## IPGeolocation işlemleri.
 
 ```python
 from cemirutils import IPGeolocation
@@ -506,13 +414,13 @@ ip_geolocator = IPGeolocation()
 
 #
 ip_address = "121.0.11.0"
+# # IP adresinin lokasyon bilgisini al (Zip dosyasını tekrar indir)
 location_info = ip_geolocator.get_ip_location(ip_address, force_download=False)
 print(location_info)
-
 ```
 
-## CemirPostgreSQL
 
+## PostgreSQL için CRUD işlemleri.
 ```python
 from datetime import datetime
 from cemirutils import CemirPostgreSQL
@@ -539,46 +447,58 @@ print(type(asd), asd)
 
 print(utils.delete('test_table_json', 'id = 1'))
 print(utils.read('test_table_json'))
-
 ```
 
-## File Operations
 
+## Kütüphane, farklı veri işleme işlevlerini sağlayan `CemirUtils` sınıfını içerir.
+
+
+### Linux komutlarını Python üzerinden çağırarak işlem yapmak için kullanılır.
 ```python
 from cemirutils import CemirUtils
-
 utils = CemirUtils()
 
-# Sample usage of file operations
-files = utils.linux_ls(path=".")
-print(files)
+# Dosya ve dizinleri listeleme örneği
+print(utils.linux_ls("."))
 
-utils.linux_touch(file_name="new_file.txt")
 
-utils.linux_gzip(file_name="file.txt")
+# Dosya oluşturma örneği
+print(utils.linux_touch("new_file.txt"))
 
-content = utils.linux_cat(file_name="file.txt")
-print(content)
+# Dosyayı gzip ile sıkıştırma örneği
+print(utils.linux_gzip("new_file.txt"))
 
-utils.linux_cp(src="file.txt", dest="copy_file.txt")
+# Dosya içeriğini görüntüleme örneği
+print(utils.linux_cat("new_file.txt"))
 
-utils.linux_mv(src="file.txt", dest="moved_file.txt")
+# Dosya kopyalama örneği
+print(utils.linux_cp("new_file.txt", "destination.txt"))
 
-utils.linux_rm(file_name="file.txt")
+# Dosya taşıma örneği
+print(utils.linux_mv("new_file.txt", "/tmp/"))
 
-utils.linux_mkdir(dir_name="new_dir")
+# Dosya silme örneği
+# print(utils.linux_rm("new_file.txt"))
 
-utils.linux_rmdir(dir_name="new_dir")
+# Yeni bir dizin oluşturma örneği
+print(utils.linux_mkdir("new_directory"))
 
-utils.linux_cut(file_name="file.txt", delimiter=" ", fields=[1, 2])
+# Boş bir dizini silme örneği
+print(utils.linux_rmdir("new_directory"))
 
-utils.linux_find(path=".", name="*.txt")
+# Dosyadan alanları ayırma örneği
+print(utils.linux_cut("\t", "1,3", "data.txt"))
 
-utils.linux_grep(file_name="file.txt", pattern="search_text")
 
+# Dizin içinde dosya arama örneği
+print(utils.linux_find("/", "new_file.txt"))
+
+# Dosyada desen arama örneği
+print(utils.linux_grep("a", "new_file.txt"))
 ```
 
-## List Operations
+
+## List ve Dict işlemleri
 
 ```python
 from cemirutils import CemirUtils
@@ -586,22 +506,39 @@ from cemirutils import CemirUtils
 data_list = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
 cem = CemirUtils(data_list)
 print(data_list)
-print(cem.list_head(2))  # Prints the first 2 elements of the list.
-print(cem.list_tail(4))  # Prints the last 4 elements of the list.
-print(cem.list_main())  # Prints the middle elements of the list.
-print(cem.list_unique_values())  # Prints the unique elements of the list.
-print(cem.list_sort_asc())  # Prints the list in ascending order.
-print(cem.list_sort_desc())  # Prints the list in descending order.
-print(cem.list_filter_greater_than(5))  # Prints values greater than 5: [9, 6]
-print(cem.list_filter_less_than(4))  # Prints values less than 4: [3, 1, 1, 2, 3]
-print(cem.list_sum_values())  # Prints the sum of values: 44
-print(cem.list_average())  # Prints the average of values: 4.0
+print(cem.list_head(2))  # Listenin ilk 5 elemanını yazdırır.
+print(cem.list_tail(4))  # Listenin son 5 elemanını yazdırır.
+print(cem.list_main())  # Listenin ortadaki elemanlarını yazdırır.
+print(cem.list_unique_values())  # Listenin benzersiz elemanlarını yazdırır.
+print(cem.list_sort_asc())  # Listenin artan sırada sıralanmış halini yazdırır.
+print(cem.list_sort_desc())  # Listenin azalan sırada sıralanmış halini yazdırır.
+print(cem.list_filter_greater_than(5))  # 5'ten büyük değerleri yazdırır: [9, 6]
+print(cem.list_filter_less_than(4))  # 4'ten küçük değerleri yazdırır: [3, 1, 1, 2, 3]
+print(cem.list_sum_values())  # Değerlerin toplamını yazdırır: 44
+print(cem.list_average())  # Değerlerin ortalamasını yazdırır: 4.0
 
-```
 
-## Dictionary Operations
+ceml = CemirUtils([[1, 2], [3, 4], [5]])
+# Çok katmanlı listeyi tek katmana indirger.
+print(ceml.list_flatten())  # Output: [1, 2, 3, 4, 5]
 
-```python
+
+ceml = CemirUtils([1, 2, 3])
+# Veri listesindeki her bir elemanı verilen skaler değer ile çarpar
+print(ceml.list_multiply_by_scalar(2))  # Output: [2, 4, 6]
+
+
+ceml = CemirUtils([1, 2, 3])
+# Veri listesindeki en büyük değeri döner.
+print(ceml.list_get_max_value())  # Output: 3
+
+
+ceml = CemirUtils([1, 2, 2, 3])
+# Verilen değerin veri listesinde kaç kez geçtiğini sayar.
+print(ceml.list_get_frequency(2)) # Output: 2
+
+
+# Sözlükteki veya sözlük listesindeki anahtarları döndürür.
 data = [{'a': 1}, {'b': 2}, {'a': 3}, {"name": "sivas", "age": 10}]
 cemd = CemirUtils(data)
 
@@ -610,7 +547,8 @@ print(cemd.dict_filter_by_key('name'))
 print(cemd.dict_merge({'a': 1}, {'b': 2}))
 ```
 
-## Time Operations
+
+## Zaman işlemleri
 
 ```python
 from cemirutils import CemirUtils
@@ -618,8 +556,8 @@ from cemirutils import CemirUtils
 utils = CemirUtils(None)
 print(utils.time_days_between_dates("2024-05-01", "2024-05-25"))  # 24
 print(utils.time_hours_minutes_seconds_between_times("08:30:00", "15:45:30"))  # (7, 15, 30)
-print(utils.time_until_date("2024-05-27 23:59:59"))  # Remaining days, hours, minutes, seconds
-print(utils.time_add_days_and_format("2024-05-01", 30))  # "2024-05-31 (Friday)"
+print(utils.time_until_date("2024-05-27 23:59:59"))  # Kalan gün, saat, dakika, saniye
+print(utils.time_add_days_and_format("2024-05-01", 30))  # "2024-05-31 (Cuma)"
 print(utils.time_is_weekend("2024-05-25"))  # True
 print(utils.time_is_leap_year(2024))  # True
 print(utils.time_days_in_month(2024, 2))  # 29
@@ -627,6 +565,44 @@ print(utils.time_next_weekday("2024-05-25", 0))  # 2024-05-27
 print(utils.time_since("2022-01-01 00:00:00"))  # (2, 4, 24, 14, 30, 15)
 print(utils.time_business_days_between_dates("2024-05-01", "2024-05-25"))  # 17
 
+
+````
+
+
+
+PING/ICMP takip ve dbye kayıt ettirmek.
+
+```shell
+sudo nano /usr/bin/ping_logger.py
+
+from cemirutils import CemirUtils
+utils = CemirUtils(data=False, dbname='test_db3', dbuser='postgres', dbpassword='asd', dbport=5435, dbcreate_db_if_not_exists=True)
+utils.tcp_listen_for_icmp(print_query=True, insert_db=True)
 ```
 
-### This markdown provides comprehensive examples of using all functions and decorators in the `CemirUtils` library. Each function is shown with a clear, working example to illustrate its usage.
+```shell
+sudo nano /etc/systemd/system/ping_logger.service
+
+[Unit]
+Description=Ping Logger Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3.9 /usr/bin/ping_logger.py
+WorkingDirectory=/usr/bin/
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```shell
+sudo chmod +x /usr/bin/ping_logger.py
+sudo systemctl daemon-reload
+sudo systemctl enable ping_logger
+sudo systemctl restart ping_logger
+sudo systemctl status ping_logger
+journalctl -xe
+```
