@@ -207,14 +207,6 @@ for i in crange(1, '99-105', 'c,e,m,i,r'):
 ## CemirUtilsLoopTimer
 
 ```python
-from cemirutils import crange
-
-for i in crange(1, '99-100', 242, '1001-1250', '3401-3430', 3441, '3600-3601', '3611-3616', '3621-3626'):
-    print(i)
-
-```
-
-```python
 import time
 from cemirutils import CemirUtilsLoopTimer
 
