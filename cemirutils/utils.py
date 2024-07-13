@@ -27,7 +27,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request
 from urllib.parse import urlparse, urlencode
 
-ver = "2.2.2"
+ver = "2.2.3"
 
 
 def cprint(data, indent=0):
@@ -93,6 +93,46 @@ def cprint(data, indent=0):
             cprint(value, indent + 2)
     else:
         print_with_indent(str(data), indent)
+
+
+def crange(*args):
+    """
+    Türkçe:
+    Belirtilen tekil sayıları, harfleri ve aralıkları içeren bir liste döndürür.
+
+    Parametreler:
+    *args: int, str
+        - int: Tekil sayılar.
+        - str: 'başlangıç-bitiş' formatında aralıklar veya virgülle ayrılmış harfler.
+
+    Dönüş:
+    List[Union[int, str]]: Belirtilen tekil sayıları, harfleri ve aralıkları içeren genişletilmiş liste.
+
+    İngilizce:
+    Returns a list containing specified individual numbers, letters, and ranges.
+
+    Parameters:
+    *args: int or str
+        - int: Individual numbers.
+        - str: Ranges in 'start-end' format or comma-separated letters.
+
+    Returns:
+    List[Union[int, str]]: Expanded list containing specified individual numbers, letters, and ranges.
+    """
+    ranges = []
+    for arg in args:
+        if isinstance(arg, int):
+            ranges.append(arg)
+        elif isinstance(arg, str):
+            if '-' in arg:
+                start, end = arg.split('-')
+                if start.isdigit() and end.isdigit():
+                    ranges.extend(range(int(start), int(end) + 1))
+                else:
+                    ranges.extend(chr(c) for c in range(ord(start), ord(end) + 1))
+            else:
+                ranges.extend(arg.split(','))
+    return ranges
 
 
 class CemirUtilsAMP:

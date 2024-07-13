@@ -146,10 +146,73 @@ This documentation provides an overview of the `CemirUtils` classes and their re
 
 
 ----------------------------------------------------------------------------------------
-
 # CemirUtils Class and Functions Documentation
 
+## colorize print
+```python
+from cemirutils import cprint
+
+data = {
+    "name": "John",
+    "age": 30,
+    "is_student": False,
+    "languages": ["Python", "JavaScript"],
+    "grades": {
+        "math": 90,
+        "science": 85
+    }
+}
+cprint(data)
+cprint(1)
+cprint("@#₺")
+cprint(1.12)
+cprint([1,2,"asd"])
+
+```
+![colorize print](https://raw.githubusercontent.com/cememir/CemirUtils/main/cprint.png)
+
+----------------------------------------------------------------------------------------
+
+## cRange
+### Returns a list containing specified individual numbers and ranges.
+
+```python
+from cemirutils import crange
+
+# Kullanım örneği / Example usage
+for i in crange(1, '99-105', 'c,e,m,i,r'):
+    print(i)
+
+# Output:
+# 1
+# 99
+# 100
+# 101
+# 102
+# 103
+# 104
+# 105
+# c
+# e
+# m
+# i
+# r
+
+```
+
+
+----------------------------------------------------------------------------------------
+
+
 ## CemirUtilsLoopTimer
+
+```python
+from cemirutils import crange
+
+for i in crange(1, '99-100', 242, '1001-1250', '3401-3430', 3441, '3600-3601', '3611-3616', '3621-3626'):
+    print(i)
+
+```
 
 ```python
 import time
