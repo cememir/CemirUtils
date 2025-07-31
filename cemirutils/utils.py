@@ -21,6 +21,7 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 from functools import wraps
 from http.client import HTTPSConnection
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -1094,7 +1095,7 @@ class CemirUtilsEmail:
                     zipf.write(file_path, os.path.basename(file_path))
         return zip_filename
 
-    def send_email(self, to_email, subject, body_html, attachments=None, zip_files=False):
+    def send_email(self, to_email, subject, body_html, attachments=None, zip_files=False, sender_name=None):
         try:
             # Check if all attachment files exist
             if attachments:
@@ -1118,7 +1119,10 @@ class CemirUtilsEmail:
 
             # Create the email
             msg = MIMEMultipart('alternative')
-            msg['From'] = self.smtp_user
+
+            msg['From'] = formataddr((str(sender_name or ""), self.smtp_user))
+
+
             msg['To'] = to_email
             msg['Subject'] = subject
 
