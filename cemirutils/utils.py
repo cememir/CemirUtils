@@ -28,7 +28,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request
 from urllib.parse import urlparse, urlencode
 
-ver = "2.2.3"
+ver = "2.2.4"
 
 
 def cprint(data, indent=0):

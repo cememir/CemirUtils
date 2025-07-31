@@ -8,5 +8,5 @@ python setup.py sdist bdist_wheel
 python -m twine upload dist/*
 
 
-python -m pip install -U cemirutils
+python -m pip install -U pip cemirutils
 
