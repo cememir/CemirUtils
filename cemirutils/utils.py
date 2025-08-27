@@ -28,7 +28,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib import request
 from urllib.parse import urlparse, urlencode
 
-ver = "2.2.4"
+ver = "2.2.5"
 
 
 def cprint(data, indent=0):
@@ -1170,22 +1170,27 @@ class CemirUtilsEmail:
             server.quit()
 
             print("Email sent successfully")
+            return True
         except smtplib.SMTPAuthenticationError:
             error_message = "Error: The server didn't accept the username/password combination."
             logging.error(error_message)
             print(error_message)
+            return False
         except smtplib.SMTPConnectError:
             error_message = "Error: Unable to establish a connection to the email server."
             logging.error(error_message)
             print(error_message)
+            return False
         except smtplib.SMTPServerDisconnected:
             error_message = "Error: Server unexpectedly disconnected."
             logging.error(error_message)
             print(error_message)
+            return False
         except Exception as e:
             error_message = f"An error occurred: {e}"
             logging.error(error_message)
             print(error_message)
+            return False
 
 
 class CemirUtilsConditions:
